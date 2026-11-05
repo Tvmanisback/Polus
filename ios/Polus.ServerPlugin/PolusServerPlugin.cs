@@ -410,7 +410,7 @@ internal sealed class ModeCommandListener : IEventListener
                 options.NumShortTasks = 4;
                 break;
             case PolusMode.RandomChaos:
-                options.NumImpostors = Random.Shared.Next(1, Math.Min(3, Math.Max(1, game.Players.Count)) + 1);
+                options.NumImpostors = Random.Shared.Next(1, Math.Min(3, Math.Max(1, game.Players.Count())) + 1);
                 options.KillCooldown = Random.Shared.Next(10, 46);
                 options.NumEmergencyMeetings = Random.Shared.Next(0, 3);
                 options.EmergencyCooldown = Random.Shared.Next(0, 31);
