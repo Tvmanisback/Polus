@@ -9,7 +9,7 @@ public sealed class PolusNeutralVictory : CustomGameOver
 {
     public override bool VerifyCondition(PlayerControl playerControl, NetworkedPlayerInfo[] winners) =>
         winners.Length == 1 && winners[0].Role is PolusNeutralRole role &&
-        PolusRoleEvents.GetCompletedTaskCount(winners[0].PlayerId) >= role.ObjectiveTaskGoal;
+        PolusRoleMechanics.GetProgress(winners[0].PlayerId) >= role.ObjectiveTaskGoal;
 
     public override void AfterEndGameSetup(EndGameManager endGameManager)
     {
