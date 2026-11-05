@@ -123,5 +123,6 @@ public static class PolusRoleEvents
 
     public static int GetRoleObjectiveProgress(byte playerId) => PolusRoleMechanics.GetProgress(playerId);
 
+    public static bool HasSharedRole(byte playerId) => SharedEffects.GetRoleId(playerId) != null;
     public static int GetSharedRoleProgress(byte playerId) => SharedRoleEngine.GetProgress(playerId);
 }
