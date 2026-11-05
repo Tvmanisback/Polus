@@ -26,7 +26,11 @@ public static class PolusRoleMechanics
 
     private static readonly ConcurrentDictionary<byte, State> States = new();
     private static PlayerControl? LastTaggedPlayer;
-    public static void Reset() => States.Clear();
+    public static void Reset()
+    {
+        EndTimedEffects();
+        States.Clear();
+    }
     private static State Get(byte id) => States.GetOrAdd(id, _ => new State());
     public static int GetProgress(byte id) => States.TryGetValue(id, out var s) ? s.Progress : 0;
     public static int GetTasks(byte id) => States.TryGetValue(id, out var s) ? s.Tasks : 0;
@@ -160,7 +164,7 @@ public static class PolusRoleMechanics
                 break;
             case BlackoutArtistRole:
                 s.Progress++;
-                foreach (var sprite in player.cosmetics.GetComponentsInChildren<SpriteRenderer>())
+                foreach (var sprite in player.cosmetics.transform.GetComponentsInChildren<SpriteRenderer>())
                     sprite.color = new Color(0.35f, 0.35f, 0.35f, 1f);
                 message = $"Display blackout applied. Patterns: {s.Progress}.";
                 break;
