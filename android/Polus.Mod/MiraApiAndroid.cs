@@ -175,6 +175,13 @@ public sealed class MiraButtonRegistry
     private readonly Dictionary<(byte Player, string Button), (DateTimeOffset LastUse, int Uses)> _uses = new();
     public IReadOnlyCollection<MiraButton> All => _buttons.Values;
     public void Register(MiraButton button) => _buttons[button.Id] = button;
+    public bool TryUseForRole(string roleId, MiraActionContext context, out string result)
+    {
+        var button = _buttons.Values.FirstOrDefault(item => item.RoleId.Equals(roleId, StringComparison.OrdinalIgnoreCase));
+        if (button == null) { result = "No ability button is registered for this role."; return false; }
+        return TryUse(button.Id, context, out result);
+    }
+
     public bool TryUse(string id, MiraActionContext context, out string result)
     {
         result = "Button is not registered.";
@@ -198,6 +205,13 @@ public sealed class MiraMeetingRegistry
     private readonly HashSet<(byte Player, string Button, int Meeting)> _used = new();
     public IReadOnlyCollection<MiraMeetingButton> All => _buttons.Values;
     public void Register(MiraMeetingButton button) => _buttons[button.Id] = button;
+    public bool TryUseForRole(string roleId, MiraMeetingContext context, out string result)
+    {
+        var button = _buttons.Values.FirstOrDefault(item => item.RoleId.Equals(roleId, StringComparison.OrdinalIgnoreCase));
+        if (button == null) { result = "No meeting button is registered for this role."; return false; }
+        return TryUse(button.Id, context, out result);
+    }
+
     public bool TryUse(string id, MiraMeetingContext context, out string result)
     {
         result = "Meeting button is not registered.";
