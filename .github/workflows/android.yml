@@ -25,6 +25,8 @@ jobs:
         run: dotnet restore android/Polus.Mod/Polus.Mod.csproj
       - name: Build Android mod
         run: dotnet build android/Polus.Mod/Polus.Mod.csproj -c Release --no-restore
+      - name: Verify Android mod outputs
+        run: test -s android/Polus.Mod/bin/Release/net6.0/Polus.AndroidMod.dll && test -s android/Polus.Mod/bin/Release/net6.0/Polus.RoleCore.dll
       - name: Restore Android patcher
         run: dotnet restore android/Polus.Android/Polus.Android.csproj
       - name: Build Polus Android APK
@@ -34,8 +36,8 @@ jobs:
         with:
           name: Polus-Android-Mod
           path: |
-            android/Polus.Mod/bin/Release/net8.0/Polus.AndroidMod.dll
-            android/Polus.Mod/bin/Release/net8.0/Polus.RoleCore.dll
+            android/Polus.Mod/bin/Release/net6.0/Polus.AndroidMod.dll
+            android/Polus.Mod/bin/Release/net6.0/Polus.RoleCore.dll
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
