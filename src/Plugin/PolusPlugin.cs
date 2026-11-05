@@ -6,8 +6,6 @@ using HarmonyLib;
 using MiraAPI.PluginLoading;
 using MiraAPI.Translation;
 using Reactor;
-using Reactor.Networking;
-using Reactor.Networking.Attributes;
 
 namespace Polus.Plugin;
 
@@ -15,7 +13,6 @@ namespace Polus.Plugin;
 [BepInProcess("Among Us.exe")]
 [BepInDependency(ReactorPlugin.Id)]
 [BepInDependency(MiraApiPlugin.Id)]
-[ReactorModFlags(ModFlags.RequireOnAllClients)]
 public sealed class PolusPlugin : BasePlugin, IMiraPlugin
 {
     public const string PluginGuid = "org.polus.customroles";
@@ -33,6 +30,6 @@ public sealed class PolusPlugin : BasePlugin, IMiraPlugin
     public override void Load()
     {
         Harmony.PatchAll();
-        Log.LogInfo("Polus 1.1.0 loaded. MiraAPI will register custom role and ability classes in this assembly.");
+        Log.LogInfo("Polus 1.1.0 loaded. Host-side utilities are available without requiring every lobby client to install Polus.");
     }
 }
