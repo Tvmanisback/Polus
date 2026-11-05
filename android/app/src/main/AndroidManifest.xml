@@ -1,6 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <queries>
         <package android:name="com.innersloth.spacemafia" />
+        <package android:name="com.lavagang.melonloader.installer" />
     </queries>
     <application
         android:allowBackup="false"
