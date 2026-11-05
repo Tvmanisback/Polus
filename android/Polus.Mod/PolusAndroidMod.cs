@@ -146,7 +146,7 @@ public sealed class PolusAndroidMod : MelonMod
         _choiceMade = true;
         _moddedMode = modded;
         _panelOpen = modded;
-        _status = modded ? "Polus Modded selected. Use private lobbies with Polus on every client." : "Vanilla selected. Polus gameplay hooks are disabled.";
+        _status = modded ? "Polus host-only mode selected. Vanilla clients can join without installing Polus." : "Vanilla selected. Polus gameplay hooks are disabled.";
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(_modeFile)!);
