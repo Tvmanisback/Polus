@@ -143,7 +143,7 @@ public sealed class PolusAndroidMod : MelonMod
         if (_harmony != null) return;
         _harmony = new HarmonyLib.Harmony("org.polus.android");
         PatchByName("MeetingHud", "Start", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(MeetingStarted)));
-        PatchByName("MeetingHud", "OnDestroy", prefix: AccessTools.Method(typeof(PolusAndroidMod), nameof(MeetingEnding)));
+        PatchByName("MeetingHud", "OnDestroy", prefix: AccessTools.Method(typeof(PolusAndroidMod), nameof(MeetingEnding)));\n        PatchByName("MeetingHud", "CastVote", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(VoteCastPostfix)));
         PatchByName("PlayerControl", "CompleteTask", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(TaskCompletedPostfix)));
         _status = "Host-only mode active. Other players remain on unmodified clients.";
     }
@@ -255,6 +255,20 @@ public sealed class PolusAndroidMod : MelonMod
             var position = transform == null ? Vector3.zero : (Vector3)(GetMember(transform, "position") ?? Vector3.zero);
             AndroidRoleMechanics.OnMeeting(localId.Value, position, role.Id);
         }
+    }
+
+
+    private static void VoteCastPostfix(object[] __args)
+    {
+        if (!_moddedMode || !IsHost() || __args == null || __args.Length < 2) return;
+        try
+        {
+            var voter = Convert.ToByte(__args[0]);
+            byte? target = __args[1] == null ? null : Convert.ToByte(__args[1]);
+            MiraApi.Instance.Voting.RecordHostObservedVote(voter, target, isHost: true);
+            MiraApi.Instance.Events.Publish(new MiraVoteRecordedEvent(voter, target, IsHost()));
+        }
+        catch (Exception ex) { MelonLogger.Warning("Vote observer hook failed: " + ex.Message); }
     }
 
     private static void MeetingEnding()\n    {\n        _meetingOpen = false;\n        MiraApi.Instance.Events.Publish(new MiraMeetingEndedEvent(_meetingNumber));\n    }
