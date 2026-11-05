@@ -10,7 +10,7 @@ public abstract class PolusCrewmateRole : CrewmateRole, ICustomRole
     public abstract string RoleName { get; }
     public abstract string RoleDescription { get; }
     public string RoleMedDescription => RoleDescription;
-    public string RoleLongDescription => RoleDescription + $"\nTasks recorded: {(Player ? PolusRoleEvents.GetCompletedTaskCount(Player.PlayerId) : 0)}";
+    public string RoleLongDescription => RoleDescription + $"\nRole progress: {(Player ? PolusRoleEvents.GetRoleObjectiveProgress(Player.PlayerId) : 0)}";
     public Color RoleColor => new Color32(105, 190, 255, 255);
     public ModdedRoleTeams Team => ModdedRoleTeams.Crewmate;
     public CustomRoleConfiguration Configuration => new(this) { DefaultRoleCount = 1, DefaultChance = 35, MaxRoleCount = 1 };
@@ -39,7 +39,7 @@ public abstract class PolusNeutralRole : CrewmateRole, ICustomRole
     public abstract string RoleDescription { get; }
     public abstract int ObjectiveTaskGoal { get; }
     public string RoleMedDescription => RoleDescription;
-    public string RoleLongDescription => RoleDescription + $"\nObjective progress: {(Player ? PolusRoleEvents.GetCompletedTaskCount(Player.PlayerId) : 0)}/{ObjectiveTaskGoal}";
+    public string RoleLongDescription => RoleDescription + $"\nObjective progress: {(Player ? PolusRoleEvents.GetRoleObjectiveProgress(Player.PlayerId) : 0)}/{ObjectiveTaskGoal}";
     public Color RoleColor => new Color32(190, 145, 255, 255);
     public ModdedRoleTeams Team => ModdedRoleTeams.Custom;
     public CustomRoleConfiguration Configuration => new(this)
@@ -61,161 +61,161 @@ public sealed class CartographerRole : PolusCrewmateRole
 {
     public override string IdPart => "cartographer";
     public override string RoleName => "Cartographer";
-    public override string RoleDescription => "Builds a route journal from completed console tasks. Each distinct task type adds one route segment.";
+    public override string RoleDescription => "Records each new map sector reached while completing tasks; its route journal shows how much ground it has covered.";
 }
 
 public sealed class AuditorRole : PolusCrewmateRole
 {
     public override string IdPart => "auditor";
     public override string RoleName => "Auditor";
-    public override string RoleDescription => "Receives one additional vote at every meeting through the meeting voting API.";
+    public override string RoleDescription => "Can audit the number of tasks completed since the previous checkpoint and earn a bonus vote when progress is found.";
 }
 
 public sealed class RelayRole : PolusCrewmateRole
 {
     public override string IdPart => "relay";
     public override string RoleName => "Relay";
-    public override string RoleDescription => "Tracks completed task signals for its personal objective.";
+    public override string RoleDescription => "Decodes one signal for every two completed tasks.";
 }
 
 public sealed class QuartermasterRole : PolusCrewmateRole
 {
     public override string IdPart => "quartermaster";
     public override string RoleName => "Quartermaster";
-    public override string RoleDescription => "Tracks completed utility tasks and earns a one-use meeting call after its task objective.";
+    public override string RoleDescription => "Unlocks a one-use emergency meeting call after completing four tasks.";
 }
 
 public sealed class SurveyorRole : PolusCrewmateRole
 {
     public override string IdPart => "surveyor";
     public override string RoleName => "Surveyor";
-    public override string RoleDescription => "Records completed tasks by task type to build an environmental survey.";
+    public override string RoleDescription => "Builds a survey by recording distinct task types and map sectors.";
 }
 
 public sealed class CourierRole : PolusCrewmateRole
 {
     public override string IdPart => "courier";
     public override string RoleName => "Courier";
-    public override string RoleDescription => "Tracks task completions as deliveries for its personal objective.";
+    public override string RoleDescription => "Every completed task is recorded as a delivery in its personal ledger.";
 }
 
 public sealed class ArchivistRole : PolusCrewmateRole
 {
     public override string IdPart => "archivist";
     public override string RoleName => "Archivist";
-    public override string RoleDescription => "Records task and meeting events in order for its personal event ledger.";
+    public override string RoleDescription => "Maintains a rolling event ledger containing task completions and meetings.";
 }
 
 public sealed class BeaconistRole : PolusCrewmateRole
 {
     public override string IdPart => "beaconist";
     public override string RoleName => "Beaconist";
-    public override string RoleDescription => "Tracks completed tasks as beacon readings.";
+    public override string RoleDescription => "Charges a beacon for every two completed tasks and can claim a bonus vote when charged.";
 }
 
 public sealed class MediatorRole : PolusCrewmateRole
 {
     public override string IdPart => "mediator";
     public override string RoleName => "Mediator";
-    public override string RoleDescription => "Earns one additional vote at the first meeting after completing three tasks.";
+    public override string RoleDescription => "Earns a bonus vote after completing three tasks and activating Mediate.";
 }
 
 public sealed class CalibratorRole : PolusCrewmateRole
 {
     public override string IdPart => "calibrator";
     public override string RoleName => "Calibrator";
-    public override string RoleDescription => "Tracks completed console tasks as calibration points.";
+    public override string RoleDescription => "Builds a calibration streak by completing the same task type consecutively.";
 }
 
 public sealed class SignalwrightRole : PolusCrewmateRole
 {
     public override string IdPart => "signalwright";
     public override string RoleName => "Signalwright";
-    public override string RoleDescription => "Records task completions as successful signal links.";
+    public override string RoleDescription => "Builds a signal chain by completing different task types consecutively.";
 }
 
 public sealed class TimekeeperRole : PolusCrewmateRole
 {
     public override string IdPart => "timekeeper";
     public override string RoleName => "Timekeeper";
-    public override string RoleDescription => "Tracks task progress checkpoints for later comparisons.";
+    public override string RoleDescription => "Stores task-count checkpoints and compares progress between snapshots.";
 }
 
 public sealed class CounterfeiterRole : PolusImpostorRole
 {
     public override string IdPart => "counterfeiter";
     public override string RoleName => "Counterfeiter";
-    public override string RoleDescription => "Uses the standard Impostor role toolkit and has its own Polus role identity.";
+    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
 }
 
 public sealed class EchoistRole : PolusImpostorRole
 {
     public override string IdPart => "echoist";
     public override string RoleName => "Echoist";
-    public override string RoleDescription => "Uses the standard Impostor role toolkit and has its own Polus role identity.";
+    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
 }
 
 public sealed class BlackoutArtistRole : PolusImpostorRole
 {
     public override string IdPart => "blackout_artist";
     public override string RoleName => "Blackout Artist";
-    public override string RoleDescription => "Uses the standard Impostor role toolkit and has its own Polus role identity.";
+    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
 }
 
 public sealed class BrokerRole : PolusImpostorRole
 {
     public override string IdPart => "broker";
     public override string RoleName => "Broker";
-    public override string RoleDescription => "Uses the standard Impostor role toolkit and has its own Polus role identity.";
+    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
 }
 
 public sealed class DecoyistRole : PolusImpostorRole
 {
     public override string IdPart => "decoyist";
     public override string RoleName => "Decoyist";
-    public override string RoleDescription => "Uses the standard Impostor role toolkit and has its own Polus role identity.";
+    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
 }
 
 public sealed class LedgeristRole : PolusImpostorRole
 {
     public override string IdPart => "ledgerist";
     public override string RoleName => "Ledgerist";
-    public override string RoleDescription => "Uses the standard Impostor role toolkit and has its own Polus role identity.";
+    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
 }
 
 public sealed class SwitchboarderRole : PolusImpostorRole
 {
     public override string IdPart => "switchboarder";
     public override string RoleName => "Switchboarder";
-    public override string RoleDescription => "Uses the standard Impostor role toolkit and has its own Polus role identity.";
+    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
 }
 
 public sealed class WeathermakerRole : PolusImpostorRole
 {
     public override string IdPart => "weathermaker";
     public override string RoleName => "Weathermaker";
-    public override string RoleDescription => "Uses the standard Impostor role toolkit and has its own Polus role identity.";
+    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
 }
 
 public sealed class MisdirectorRole : PolusImpostorRole
 {
     public override string IdPart => "misdirector";
     public override string RoleName => "Misdirector";
-    public override string RoleDescription => "Uses the standard Impostor role toolkit and has its own Polus role identity.";
+    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
 }
 
 public sealed class ScramblerRole : PolusImpostorRole
 {
     public override string IdPart => "scrambler";
     public override string RoleName => "Scrambler";
-    public override string RoleDescription => "Uses the standard Impostor role toolkit and has its own Polus role identity.";
+    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
 }
 
 public sealed class ParasiticSignalRole : PolusImpostorRole
 {
     public override string IdPart => "parasitic_signal";
     public override string RoleName => "Parasitic Signal";
-    public override string RoleDescription => "Uses the standard Impostor role toolkit and has its own Polus role identity.";
+    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
 }
 
 public sealed class JigsawRole : PolusNeutralRole
@@ -223,7 +223,7 @@ public sealed class JigsawRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 4;
     public override string IdPart => "jigsaw";
     public override string RoleName => "Jigsaw";
-    public override string RoleDescription => "Has a distinct neutral identity and a personal task-completion objective.";
+    public override string RoleDescription => "Collects a pattern fragment for each distinct task type completed.";
 }
 
 public sealed class PilgrimRole : PolusNeutralRole
@@ -231,7 +231,7 @@ public sealed class PilgrimRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 5;
     public override string IdPart => "pilgrim";
     public override string RoleName => "Pilgrim";
-    public override string RoleDescription => "Has a distinct neutral identity and a longer personal task-completion objective.";
+    public override string RoleDescription => "Builds a route by completing different task types without repeating the previous one.";
 }
 
 public sealed class CuratorRole : PolusNeutralRole
@@ -239,7 +239,7 @@ public sealed class CuratorRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 4;
     public override string IdPart => "curator";
     public override string RoleName => "Curator";
-    public override string RoleDescription => "Has a distinct neutral identity and a personal collection objective.";
+    public override string RoleDescription => "Catalogues task types and new map sectors as unique collection entries.";
 }
 
 public sealed class WayfinderRole : PolusNeutralRole
@@ -247,7 +247,7 @@ public sealed class WayfinderRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 6;
     public override string IdPart => "wayfinder";
     public override string RoleName => "Wayfinder";
-    public override string RoleDescription => "Has a distinct neutral identity and a personal route objective.";
+    public override string RoleDescription => "Advances its route objective by completing tasks in new map sectors.";
 }
 
 public sealed class CollectorRole : PolusNeutralRole
@@ -255,7 +255,7 @@ public sealed class CollectorRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 5;
     public override string IdPart => "collector";
     public override string RoleName => "Collector";
-    public override string RoleDescription => "Has a distinct neutral identity and a personal collection objective.";
+    public override string RoleDescription => "Catalogues task types and new map sectors as unique collection entries.";
 }
 
 public sealed class MetronomeRole : PolusNeutralRole
@@ -263,7 +263,7 @@ public sealed class MetronomeRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 6;
     public override string IdPart => "metronome";
     public override string RoleName => "Metronome";
-    public override string RoleDescription => "Has a distinct neutral identity and a personal sequence objective.";
+    public override string RoleDescription => "Collects one artifact for each distinct task type completed.";
 }
 
 public sealed class CartoucheRole : PolusNeutralRole
@@ -271,7 +271,7 @@ public sealed class CartoucheRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 4;
     public override string IdPart => "cartouche";
     public override string RoleName => "Cartouche";
-    public override string RoleDescription => "Has a distinct neutral identity and a personal symbol-pair objective.";
+    public override string RoleDescription => "Builds a symbol sequence by completing different task types in a row.";
 }
 
 public sealed class LighthouseRole : PolusNeutralRole
@@ -279,7 +279,7 @@ public sealed class LighthouseRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 7;
     public override string IdPart => "lighthouse";
     public override string RoleName => "Lighthouse";
-    public override string RoleDescription => "Has a distinct neutral identity and a personal signal-chain objective.";
+    public override string RoleDescription => "Restores one beacon segment for every pair of completed tasks.";
 }
 
 public sealed class WeathervaneRole : PolusNeutralRole
@@ -287,7 +287,7 @@ public sealed class WeathervaneRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 5;
     public override string IdPart => "weathervane";
     public override string RoleName => "Weathervane";
-    public override string RoleDescription => "Has a distinct neutral identity and a personal prediction objective.";
+    public override string RoleDescription => "Builds prediction progress by alternating task types.";
 }
 
 public sealed class PuzzlewrightRole : PolusNeutralRole
@@ -295,7 +295,7 @@ public sealed class PuzzlewrightRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 8;
     public override string IdPart => "puzzlewright";
     public override string RoleName => "Puzzlewright";
-    public override string RoleDescription => "Has a distinct neutral identity and a personal logic objective.";
+    public override string RoleDescription => "Solves its logic sequence by avoiding consecutive repeats of the same task type.";
 }
 
 public sealed class TimeCapsuleRole : PolusNeutralRole
@@ -303,7 +303,7 @@ public sealed class TimeCapsuleRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 6;
     public override string IdPart => "timecapsule";
     public override string RoleName => "Time Capsule";
-    public override string RoleDescription => "Has a distinct neutral identity and a personal before-and-after objective.";
+    public override string RoleDescription => "Compares task-count snapshots to measure progress between checkpoints.";
 }
 
 public sealed class NomadRole : PolusNeutralRole
@@ -311,6 +311,6 @@ public sealed class NomadRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 7;
     public override string IdPart => "nomad";
     public override string RoleName => "Nomad";
-    public override string RoleDescription => "Has a distinct neutral identity and a personal travel objective.";
+    public override string RoleDescription => "Builds a travel score by completing tasks in new map sectors.";
 }
 
