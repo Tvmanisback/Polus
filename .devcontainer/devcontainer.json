@@ -19,14 +19,10 @@
       ]
     }
   },
-  "forwardPorts": [22023, 22024],
+  "forwardPorts": [22023],
   "portsAttributes": {
     "22023": {
-      "label": "Polus iOS game server",
-      "onAutoForward": "notify"
-    },
-    "22024": {
-      "label": "Polus iOS server status",
+      "label": "Polus matchmaking HTTP (TCP only; not UDP)",
       "onAutoForward": "notify"
     }
   },
