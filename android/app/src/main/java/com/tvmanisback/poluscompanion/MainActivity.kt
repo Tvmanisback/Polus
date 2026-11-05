@@ -13,130 +13,117 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import rikka.shizuku.Shizuku
+import java.io.File
+import java.util.zip.ZipFile
 
 private const val AMONG_US_PACKAGE = "com.innersloth.spacemafia"
-private const val SHIZUKU_REQUEST_CODE = 7401
 
 data class GameInstall(
     val installed: Boolean,
     val version: String,
-    val apkPath: String,
+    val apkPaths: List<String>,
+    val isArm64: Boolean,
+    val hasIl2Cpp: Boolean,
+    val hasUnityMain: Boolean,
+    val hasMetadata: Boolean,
     val message: String
-)
+) {
+    val loaderPreflightPassed: Boolean
+        get() = installed && isArm64 && hasIl2Cpp && hasUnityMain && hasMetadata
+}
 
 class MainActivity : ComponentActivity() {
-    private var shizukuStatus by mutableStateOf("Shizuku has not been checked.")
-    private var shizukuGranted by mutableStateOf(false)
     private var gameInstall by mutableStateOf<GameInstall?>(null)
-    private var statusMessage by mutableStateOf("Run setup to inspect Among Us.")
-
-    private val permissionListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
-        if (requestCode == SHIZUKU_REQUEST_CODE) {
-            shizukuGranted = grantResult == PackageManager.PERMISSION_GRANTED
-            shizukuStatus = if (shizukuGranted) "Shizuku permission granted." else "Shizuku permission was not granted."
-        }
-    }
+    private var statusMessage by mutableStateOf("Run setup to inspect the installed Among Us build.")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Shizuku.addRequestPermissionResultListener(permissionListener)
-        refreshShizukuStatus()
         setContent {
             MaterialTheme {
                 PolusScreen(
                     gameInstall = gameInstall,
-                    shizukuStatus = shizukuStatus,
-                    shizukuGranted = shizukuGranted,
                     statusMessage = statusMessage,
                     onSetup = { runSetup() },
-                    onRequestShizuku = { requestShizukuPermission() },
-                    onOpenVanilla = { openAmongUs() },
-                    onOpenShizuku = { openShizukuManager() },
-                    onPatch = { statusMessage = "Patch engine is not installed in this build yet. No game files have been changed." }
+                    onPatchCheck = { runPatchPreflight() }
                 )
             }
         }
     }
 
-    override fun onDestroy() {
-        Shizuku.removeRequestPermissionResultListener(permissionListener)
-        super.onDestroy()
-    }
-
     private fun runSetup() {
         gameInstall = inspectAmongUs()
-        refreshShizukuStatus()
         statusMessage = when {
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.O -> "This Android version is too old for the Android LemonLoader runtime."
-            !gameInstall!!.installed -> "Among Us was not found. Install the official game, then run setup again."
-            else -> "Among Us detected. Original installation has not been modified."
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.O ->
+                "Android 8.0 or newer is required by the current LemonLoader Android runtime profile."
+            gameInstall?.installed != true ->
+                "Among Us was not found. Install the official game, then run setup again."
+            else ->
+                "Among Us detected. Setup only inspected the installed APK; no game files were changed."
+        }
+    }
+
+    private fun runPatchPreflight() {
+        val game = inspectAmongUs()
+        gameInstall = game
+        statusMessage = when {
+            !game.installed -> "Among Us is not installed."
+            !game.isArm64 -> "This installation/device does not expose the required ARM64 ABI."
+            !game.hasIl2Cpp -> "The installed APK set does not contain libil2cpp.so in the expected ARM64 location."
+            !game.hasUnityMain -> "The installed APK set does not contain libmain.so in the expected ARM64 location."
+            !game.hasMetadata -> "Unity global-metadata.dat was not found in the inspected APK set."
+            else -> "Basic LemonLoader prerequisites detected. This is not a completed patch: game-specific Interop generation and APK injection/signing are still required."
         }
     }
 
     private fun inspectAmongUs(): GameInstall {
         return try {
-            val info = packageManager.getApplicationInfo(AMONG_US_PACKAGE, 0)
+            val appInfo = packageManager.getApplicationInfo(AMONG_US_PACKAGE, 0)
             val packageInfo = packageManager.getPackageInfo(AMONG_US_PACKAGE, 0)
-            GameInstall(true, packageInfo.versionName ?: "Unknown", info.sourceDir ?: "Unavailable", "Among Us is installed.")
+            val paths = buildList {
+                add(appInfo.sourceDir)
+                appInfo.splitSourceDirs?.forEach { add(it) }
+            }.distinct()
+
+            var il2cpp = false
+            var unityMain = false
+            var metadata = false
+
+            for (path in paths) {
+                if (!File(path).isFile) continue
+                try {
+                    ZipFile(path).use { apk ->
+                        il2cpp = il2cpp || apk.getEntry("lib/arm64-v8a/libil2cpp.so") != null
+                        unityMain = unityMain || apk.getEntry("lib/arm64-v8a/libmain.so") != null
+                        metadata = metadata || apk.getEntry("assets/bin/Data/Managed/Metadata/global-metadata.dat") != null
+                    }
+                } catch (_: Exception) {
+                    // A split may not be a readable ZIP on some vendor builds; continue checking the remaining APKs.
+                }
+            }
+
+            val arm64 = Build.SUPPORTED_ABIS.any { it == "arm64-v8a" }
+            GameInstall(
+                installed = true,
+                version = packageInfo.versionName ?: "Unknown",
+                apkPaths = paths,
+                isArm64 = arm64,
+                hasIl2Cpp = il2cpp,
+                hasUnityMain = unityMain,
+                hasMetadata = metadata,
+                message = "Among Us is installed."
+            )
         } catch (_: PackageManager.NameNotFoundException) {
-            GameInstall(false, "—", "—", "Among Us is not installed.")
+            GameInstall(false, "—", emptyList(), false, false, false, false, "Among Us is not installed.")
         }
-    }
-
-    private fun refreshShizukuStatus() {
-        val connected = try { Shizuku.pingBinder() } catch (_: Exception) { false }
-        shizukuGranted = try {
-            connected && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
-        } catch (_: Exception) { false }
-        shizukuStatus = when {
-            !connected -> "Shizuku service is not running."
-            shizukuGranted -> "Shizuku is connected and permission is granted."
-            else -> "Shizuku is running, but Polus has not been granted permission."
-        }
-    }
-
-    private fun requestShizukuPermission() {
-        if (!Shizuku.pingBinder()) {
-            shizukuStatus = "Start Shizuku first, then return here and try again."
-            return
-        }
-        if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
-            shizukuGranted = true
-            shizukuStatus = "Shizuku permission is already granted."
-        } else {
-            Shizuku.requestPermission(SHIZUKU_REQUEST_CODE)
-        }
-    }
-
-    private fun openShizukuManager() {
-        val intent = packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api")
-        if (intent != null) startActivity(intent)
-        else statusMessage = "Install Shizuku from its official source, start its service, then return to Polus."
-    }
-
-    private fun openAmongUs() {
-        val intent = packageManager.getLaunchIntentForPackage(AMONG_US_PACKAGE)
-        if (intent == null) {
-            statusMessage = "Among Us is not installed or cannot be launched."
-            return
-        }
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        startActivity(intent)
     }
 }
 
 @Composable
 private fun PolusScreen(
     gameInstall: GameInstall?,
-    shizukuStatus: String,
-    shizukuGranted: Boolean,
     statusMessage: String,
     onSetup: () -> Unit,
-    onRequestShizuku: () -> Unit,
-    onOpenVanilla: () -> Unit,
-    onOpenShizuku: () -> Unit,
-    onPatch: () -> Unit
+    onPatchCheck: () -> Unit
 ) {
     Surface(Modifier.fillMaxSize()) {
         Column(
@@ -144,44 +131,53 @@ private fun PolusScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text("POLUS", style = MaterialTheme.typography.displaySmall)
-            Text("Android launcher & patcher", style = MaterialTheme.typography.titleMedium)
-            Text("Set up the Android game, manage the mod loader, and choose how to launch Among Us.")
+            Text("Android setup & patcher", style = MaterialTheme.typography.titleMedium)
+            Text("Inspect the installed Among Us build and prepare it for the Android Polus loader.")
             HorizontalDivider()
 
-            Text("1. Setup", style = MaterialTheme.typography.titleLarge)
-            Text("Polus checks the installed Among Us package and records its APK location. Setup does not replace or uninstall the game.")
-            Button(onClick = onSetup, modifier = Modifier.fillMaxWidth()) { Text("Run setup") }
-            gameInstall?.let {
-                Text(if (it.installed) "Among Us ${it.version} detected" else it.message)
-                if (it.installed) Text("APK: ${it.apkPath}", style = MaterialTheme.typography.bodySmall)
+            Text("1. Detect Among Us", style = MaterialTheme.typography.titleLarge)
+            Button(onClick = onSetup, modifier = Modifier.fillMaxWidth()) {
+                Text("Run setup")
+            }
+            gameInstall?.let { game ->
+                Text(if (game.installed) "Among Us ${game.version} detected" else game.message)
+                if (game.installed) {
+                    Text("APK parts: ${game.apkPaths.size}", style = MaterialTheme.typography.bodySmall)
+                    Text("ARM64 device: ${yesNo(game.isArm64)}")
+                    Text("libil2cpp.so: ${yesNo(game.hasIl2Cpp)}")
+                    Text("libmain.so: ${yesNo(game.hasUnityMain)}")
+                    Text("global-metadata.dat: ${yesNo(game.hasMetadata)}")
+                }
             }
             Text(statusMessage, color = MaterialTheme.colorScheme.secondary)
 
             HorizontalDivider()
-            Text("2. Shizuku access", style = MaterialTheme.typography.titleLarge)
-            Text("Shizuku can provide user-authorized ADB-level access for protected file operations. Polus only requests permission; it does not silently grant itself access.")
-            Text(shizukuStatus, color = if (shizukuGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary)
-            OutlinedButton(onClick = onOpenShizuku, modifier = Modifier.fillMaxWidth()) { Text("Open Shizuku") }
-            Button(onClick = onRequestShizuku, modifier = Modifier.fillMaxWidth()) {
-                Text(if (shizukuGranted) "Refresh Shizuku permission" else "Authorize Polus in Shizuku")
-            }
-
-            HorizontalDivider()
-            Text("3. Patch Among Us", style = MaterialTheme.typography.titleLarge)
-            Text("The Android LemonLoader runtime is the intended loader. Its patcher needs game-specific IL2CPP Interop generated for the exact installed game build. That patching engine and Polus Android plugin are not bundled yet.")
-            Button(onClick = onPatch, enabled = gameInstall?.installed == true, modifier = Modifier.fillMaxWidth()) {
+            Text("2. LemonLoader compatibility", style = MaterialTheme.typography.titleLarge)
+            Text("Checks the installed APK set for the Android ARM64 Unity IL2CPP layout used by LemonLoader. Passing these checks does not prove the game is compatible; matching Interop assemblies and a successful test launch are still required.")
+            Button(
+                onClick = onPatchCheck,
+                enabled = gameInstall?.installed == true,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("Check patch requirements")
             }
 
             HorizontalDivider()
-            Text("4. Play", style = MaterialTheme.typography.titleLarge)
-            Text("Vanilla starts the installed game normally. Modded launch will become available after the Android loader and Polus plugin are successfully installed and verified.")
-            Button(onClick = onOpenVanilla, enabled = gameInstall?.installed == true, modifier = Modifier.fillMaxWidth()) {
-                Text("Play Vanilla Among Us")
+            Text("3. Install Polus", style = MaterialTheme.typography.titleLarge)
+            Text("The Android LemonLoader patch pipeline and Android Polus game plugin are not integrated yet. Polus will not replace the installed game or show a success message until the patch, signature-preserving install, and first launch are verified.")
+            OutlinedButton(
+                onClick = {},
+                enabled = false,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Patch installed Among Us — integration required")
             }
-            OutlinedButton(onClick = { }, enabled = false, modifier = Modifier.fillMaxWidth()) {
-                Text("Play Polus Modded — patch engine required")
-            }
+
+            HorizontalDivider()
+            Text("4. In-game mode selector", style = MaterialTheme.typography.titleLarge)
+            Text("The planned selector belongs inside Among Us: Vanilla starts without Polus gameplay features; Modded loads the Polus Android plugin. It must be implemented as a Unity-side plugin, not as a separate launcher screen.")
         }
     }
 }
+
+private fun yesNo(value: Boolean) = if (value) "Found" else "Not found"
