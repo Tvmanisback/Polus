@@ -117,21 +117,21 @@ public sealed class MediatorRole : PolusCrewmateRole
 {
     public override string IdPart => "mediator";
     public override string RoleName => "Mediator";
-    public override string RoleDescription => "Earns a bonus vote after completing three tasks and activating Mediate.";
+    public override string RoleDescription => "Earns one bonus vote at the first meeting after completing three tasks.";
 }
 
 public sealed class CalibratorRole : PolusCrewmateRole
 {
     public override string IdPart => "calibrator";
     public override string RoleName => "Calibrator";
-    public override string RoleDescription => "Builds a calibration streak by completing the same task type consecutively.";
+    public override string RoleDescription => "Earns a bonus vote at a meeting after completing the same task type twice in a row.";
 }
 
 public sealed class SignalwrightRole : PolusCrewmateRole
 {
     public override string IdPart => "signalwright";
     public override string RoleName => "Signalwright";
-    public override string RoleDescription => "Builds a signal chain by completing different task types consecutively.";
+    public override string RoleDescription => "Earns a bonus vote at a meeting after completing three different task types consecutively.";
 }
 
 public sealed class TimekeeperRole : PolusCrewmateRole
@@ -166,7 +166,7 @@ public sealed class BrokerRole : PolusImpostorRole
 {
     public override string IdPart => "broker";
     public override string RoleName => "Broker";
-    public override string RoleDescription => "Trades a clue token for one additional vote at the next meeting.";
+    public override string RoleDescription => "Receives one additional vote at every meeting and records each clue-trade activation.";
 }
 
 public sealed class DecoyistRole : PolusImpostorRole
