@@ -9,7 +9,7 @@
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 Inter,Segoe UI,system-ui,sans-serif}a{color:var(--teal);text-decoration:none}a:hover{text-decoration:underline}.wrap{width:min(980px,calc(100% - 36px));margin:auto}
 header{border-bottom:1px solid #ffffff17;background:#080b0eee;position:sticky;top:0;z-index:4}.nav{height:68px;display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:11px;color:var(--text);font-weight:900;letter-spacing:.18em}.brand img{width:34px;height:34px;object-fit:contain;border-radius:9px}.links{display:flex;gap:24px;font-size:13px}.links a{color:#b9c8cb}
 .hero{padding:76px 0 48px;text-align:center}.eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);font-weight:900}.hero h1{font-size:clamp(40px,8vw,70px);line-height:1.02;letter-spacing:-.06em;margin:16px 0}.hero p{max-width:650px;margin:0 auto;color:var(--muted);font-size:17px}.actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:26px}.button{display:inline-flex;justify-content:center;align-items:center;padding:12px 20px;border:1px solid var(--line);border-radius:8px;color:var(--text);background:#121c21;font-weight:800;font-size:13px}.button.primary{background:var(--teal);color:#071313;border-color:var(--teal)}.button.disabled{opacity:.55;cursor:not-allowed}
-section{padding:42px 0;border-top:1px solid #ffffff12}.section-title{text-align:center;margin-bottom:26px}.section-title h2{font-size:30px;letter-spacing:-.035em;margin:4px 0}.section-title p{color:var(--muted);margin:0}.downloads{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.platform{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;min-height:205px}.platform h3{margin:0 0 6px;font-size:19px}.platform p{color:var(--muted);font-size:13px;line-height:1.6;margin:0 0 18px}.platform .button{margin-top:auto}.status{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--teal);font-weight:900;margin-bottom:12px}.status.soon{color:#e8c67c}.status.no{color:#e49b9b}
+section{padding:42px 0;border-top:1px solid #ffffff12}.section-title{text-align:center;margin-bottom:26px}.section-title h2{font-size:30px;letter-spacing:-.035em;margin:4px 0}.section-title p{color:var(--muted);margin:0}.downloads{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.platform{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;display:flex;flex-direction:column;min-height:205px}.platform h3{margin:0 0 6px;font-size:19px}.platform p{color:var(--muted);font-size:13px;line-height:1.6;margin:0 0 18px}.platform .button{margin-top:auto}.ios-form{display:grid;gap:9px;margin-top:12px}.ios-form label{font-size:12px;color:var(--muted);font-weight:700}.ios-form input{width:100%;margin-top:5px;padding:11px;border:1px solid var(--line);border-radius:7px;background:#080f13;color:var(--text);font:inherit;font-size:13px}.ios-form .button{width:100%;cursor:pointer}.ios-help{font-size:11px;color:var(--muted);margin:0}.status{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--teal);font-weight:900;margin-bottom:12px}.status.soon{color:#e8c67c}.status.no{color:#e49b9b}
 .steps{max-width:720px;margin:auto;padding-left:24px}.steps li{padding:7px 0;color:#dce7e8}.steps li::marker{color:var(--teal);font-weight:900}.note{max-width:720px;margin:20px auto 0;padding:14px 16px;background:#35d6c10d;border-left:3px solid var(--teal);color:#b8cbcd;font-size:13px}
 .features{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.feature{padding:17px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}.feature h3{margin:0 0 5px;font-size:16px}.feature p{margin:0;color:var(--muted);font-size:13px}
 footer{border-top:1px solid #ffffff17;padding:25px 0;color:var(--muted);font-size:12px}.foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -23,7 +23,7 @@ footer{border-top:1px solid #ffffff17;padding:25px 0;color:var(--muted);font-siz
 <div class="downloads">
 <article class="platform"><div class="status">Available · v1.1.0</div><h3>Windows PC</h3><p>Download the standalone Polus patcher for the Steam version of Among Us. No ZIP extraction is required.</p><a class="button primary" href="https://github.com/Tvmanisback/Polus/releases/download/1.1.0/Polus.exe">Download Polus.exe ↗</a></article>
 <article class="platform"><div class="status">Available · v1.1.0</div><h3>Android</h3><p>Install the Polus Android patcher APK, then open it and follow its on-screen instructions. Android may ask you to approve app installation.</p><a class="button primary" href="https://github.com/Tvmanisback/Polus/releases/download/1.1.0/com.tvmanisback.poluscompanion.apk">Download Android APK ↗</a></article>
-<article class="platform"><div class="status no">Impossible for now</div><h3>iOS</h3><p>There is no supported Polus iOS build. The current project does not provide an iPhone or iPad installer.</p><span class="button disabled">Unavailable</span></article>
+<article class="platform"><div class="status soon">Experimental · region setup</div><h3>iOS</h3><p>Generate a custom Among Us region file for the Polus matchmaking endpoint. The server must already be running.</p><div class="ios-form"><label for="iosMatchmakingUrl">Public HTTPS matchmaking URL<input id="iosMatchmakingUrl" type="url" inputmode="url" placeholder="https://your-server.example" autocomplete="url"></label><button class="button primary" id="generateIosRegion" type="button">Create region.json</button><p class="ios-help" id="iosRegionStatus" aria-live="polite">On iPhone, this opens the iOS share sheet when supported. Choose Among Us only if it appears as an import target.</p></div></article>
 </div></div></section>
 <section><div class="wrap"><div class="section-title"><div class="eyebrow">INSTALLATION</div><h2>How to get started</h2><p>Close Among Us before changing its files.</p></div>
 <ol class="steps"><li><strong>Windows:</strong> Download <a href="https://github.com/Tvmanisback/Polus/releases/download/1.1.0/Polus.exe">Polus.exe (v1.1.0)</a> and run it directly.</li><li>Use Detect Steam, or Browse to select the folder containing <code>Among Us.exe</code>.</li><li>Choose Setup loader to install the required BepInEx IL2CPP files, then choose Install Polus.</li><li>Launch Among Us and check the BepInEx log if anything fails to load.</li><li><strong>Android:</strong> Download and install the <a href="https://github.com/Tvmanisback/Polus/releases/download/1.1.0/com.tvmanisback.poluscompanion.apk">Polus Android APK (v1.1.0)</a>, open the patcher, and follow its on-screen instructions.</li></ol>
@@ -32,5 +32,60 @@ footer{border-top:1px solid #ffffff17;padding:25px 0;color:var(--muted);font-siz
 <div class="features"><article class="feature"><h3>Custom roles</h3><p>Distinct role identities, objectives, and role-specific mechanics.</p></article><article class="feature"><h3>Host tools</h3><p>Host-authoritative utilities and lobby controls for private games.</p></article><article class="feature"><h3>Shared role engine</h3><p>PC and Android work toward a common role and match-state system.</p></article><article class="feature"><h3>Transparent compatibility</h3><p>Custom Polus buttons and role effects require a compatible modded client.</p></article></div></div></section>
 </main>
 <footer><div class="wrap foot"><span>© <span id="year"></span> Polus Community Project</span><span>Not affiliated with or endorsed by Innersloth LLC.</span></div></footer>
-<script>document.getElementById("year").textContent=new Date().getFullYear();</script>
+<script>
+document.getElementById("year").textContent=new Date().getFullYear();
+
+const iosRegions = [
+  { "$type":"StaticHttpRegionInfo, Assembly-CSharp", "Name":"North America", "PingServer":"matchmaker.among.us", "Servers":[{"Name":"Http-1","Ip":"https://matchmaker.among.us","Port":443,"UseDtls":true,"Players":0,"ConnectionFailures":0}], "TranslateName":289 },
+  { "$type":"StaticHttpRegionInfo, Assembly-CSharp", "Name":"Europe", "PingServer":"matchmaker-eu.among.us", "Servers":[{"Name":"Http-1","Ip":"https://matchmaker-eu.among.us","Port":443,"UseDtls":true,"Players":0,"ConnectionFailures":0}], "TranslateName":290 },
+  { "$type":"StaticHttpRegionInfo, Assembly-CSharp", "Name":"Asia", "PingServer":"matchmaker-as.among.us", "Servers":[{"Name":"Http-1","Ip":"https://matchmaker-as.among.us","Port":443,"UseDtls":true,"Players":0,"ConnectionFailures":0}], "TranslateName":291 }
+];
+
+document.getElementById("generateIosRegion").addEventListener("click", async () => {
+  const input = document.getElementById("iosMatchmakingUrl");
+  const status = document.getElementById("iosRegionStatus");
+  let endpoint;
+  try {
+    endpoint = new URL(input.value.trim());
+    if (endpoint.protocol !== "https:" || !endpoint.hostname) throw new Error("Use a public HTTPS URL.");
+  } catch {
+    status.textContent = "Enter a valid public HTTPS matchmaking URL first.";
+    input.focus();
+    return;
+  }
+
+  const host = endpoint.hostname;
+  const regions = [...iosRegions, {
+    "$type":"StaticHttpRegionInfo, Assembly-CSharp",
+    "Name":"Polus iOS",
+    "PingServer":host,
+    "Servers":[{"Name":"Polus iOS HTTPS","Ip":endpoint.origin,"Port":443,"UseDtls":false,"Players":0,"ConnectionFailures":0}],
+    "TranslateName":1003
+  }];
+  const data = JSON.stringify({"CurrentRegionIdx":3,"Regions":regions}, null, 2);
+  const file = new File([data], "region.json", {type:"application/json"});
+  try {
+    if (navigator.canShare && navigator.canShare({files:[file]})) {
+      await navigator.share({files:[file], title:"Polus iOS region", text:"Import region.json into Among Us if it offers that option."});
+      status.textContent = "Shared region.json. If Among Us did not appear in the share sheet, save the file and use your device's supported region-import method.";
+    } else {
+      const blobUrl = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = "region.json";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(blobUrl);
+      status.textContent = "Downloaded region.json. Open or import it using a method supported by your iOS version and Among Us.";
+    }
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      status.textContent = "Share cancelled. Tap Create region.json again when ready.";
+      return;
+    }
+    status.textContent = "Could not open the share sheet. Try again or use the server's make-region.sh script.";
+  }
+});
+</script>
 </body></html>
