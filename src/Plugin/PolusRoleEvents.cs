@@ -5,6 +5,7 @@ using MiraAPI.Events.Vanilla.Meeting;
 using MiraAPI.Events.Vanilla.Gameplay;
 using MiraAPI.Events.Vanilla.Player;
 using MiraAPI.GameEnd;
+using MiraAPI.Roles;
 using MiraAPI.Utilities;
 using Polus.Plugin.Roles;
 
