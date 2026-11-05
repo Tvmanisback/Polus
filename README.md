@@ -4,7 +4,7 @@
   <img src="icon.png" alt="Polus icon" width="220">
 </div>
 
-**A custom-role mod and Windows patcher for Among Us (Steam).**
+**A custom-role mod and patcher project for Among Us.**\n\n🌐 **Website:** [Polus Community](https://tvmanisback.github.io/Polus/)
 
 <div align="center">
 
