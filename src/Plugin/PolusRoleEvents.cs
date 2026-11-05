@@ -18,6 +18,7 @@ public static class PolusRoleEvents
     private static readonly ConcurrentDictionary<byte, int> CompletedTasks = new();
     private static readonly ConcurrentDictionary<byte, byte> NeutralWinsTriggered = new();
     private static readonly HostRoleEngine SharedRoleEngine = new();
+    private static readonly RoleEffectEngine SharedEffects = new(true);
 
     [RegisterEvent]
     public static void OnIntroBegin(IntroBeginEvent ev)
@@ -44,7 +45,12 @@ public static class PolusRoleEvents
                     Mechanic: "Shared Polus role engine", WinCondition: team == RoleTeam.Neutral ? "Complete role objective" : "")));
         }
         SharedRoleEngine.EndMatch();
-        if (assignments.Count > 0) SharedRoleEngine.StartMatch(assignments);
+        SharedEffects.EndMatch();
+        if (assignments.Count > 0)
+        {
+            SharedRoleEngine.StartMatch(assignments);
+            SharedEffects.BeginMatch(assignments);
+        }
     }
 
     [RegisterEvent]
@@ -53,7 +59,12 @@ public static class PolusRoleEvents
         if (ev.Player == null || ev.Player.Data == null) return;
         CompletedTasks.AddOrUpdate(ev.Player.PlayerId, 1, (_, current) => current + 1);
         PolusRoleMechanics.RecordTask(ev.Player, ev.Task.TaskType.ToString());
-        try { SharedRoleEngine.RecordTask(ev.Player.PlayerId, ev.Task.TaskType.ToString(), ev.Player.transform.position.x, ev.Player.transform.position.y); } catch { }
+        try
+        {
+            SharedRoleEngine.RecordTask(ev.Player.PlayerId, ev.Task.TaskType.ToString(), ev.Player.transform.position.x, ev.Player.transform.position.y);
+            SharedEffects.RecordTask(ev.Player.PlayerId, ev.Task.TaskType.ToString(), ev.Player.transform.position.x, ev.Player.transform.position.y);
+        }
+        catch { }
         CheckNeutralWin(ev.Player);
     }
 
@@ -61,6 +72,7 @@ public static class PolusRoleEvents
     public static void OnMeetingStarted(StartMeetingEvent ev)
     {
         SharedRoleEngine.BeginMeeting();
+        SharedEffects.BeginMeeting();
         foreach (var player in PlayerControl.AllPlayerControls.ToArray())
         {
             if (player == null || player.Data == null) continue;
@@ -82,6 +94,9 @@ public static class PolusRoleEvents
 
     private static bool ActivateRoleAbility(PlayerControl player, bool vanillaButton)
     {
+        if (player == null || !AmongUsClient.Instance.AmHost) return false;
+        var decision = SharedEffects.TryUseAbility(player.PlayerId, DateTimeOffset.UtcNow, 25, out _);
+        if (!decision.Accepted) return false;
         var activated = vanillaButton
             ? PolusRoleMechanics.ActivateVanillaRoleAbility(player)
             : PolusRoleMechanics.ActivateModdedRoleAbility(player);
