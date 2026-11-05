@@ -20,7 +20,7 @@ public sealed class PolusAndroidMod : MelonMod
     private static readonly object StateLock = new();
     private static IReadOnlyList<RoleDefinition> _catalog = Array.Empty<RoleDefinition>();
     private static RoleMatchRuntime? _hostRuntime;
-    private static Harmony? _harmony;
+    private static HarmonyLib.Harmony? _harmony;
     private static bool _choiceMade;
     private static bool _moddedMode;
     private static bool _panelOpen;
@@ -143,7 +143,7 @@ public sealed class PolusAndroidMod : MelonMod
     private void ActivateModdedHooks()
     {
         if (_harmony != null) return;
-        _harmony = new Harmony("org.polus.android");
+        _harmony = new HarmonyLib.Harmony("org.polus.android");
         PatchByName("MeetingHud", "Start", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(MeetingStarted)));
         PatchByName("MeetingHud", "OnDestroy", prefix: AccessTools.Method(typeof(PolusAndroidMod), nameof(MeetingEnding)));
         PatchByName("PlayerControl", "HandleRpc", prefix: AccessTools.Method(typeof(PolusAndroidMod), nameof(HandleRpcPrefix)));
