@@ -51,12 +51,24 @@ public static class PolusRoleEvents
 
     // Called only by the local role's action button. Each assigned role gets one
     // meaningful, match-scoped action: a bonus meeting vote, or neutral objective progress.
-    public static bool ActivateRoleAbility(PlayerControl player)
+    public static bool ActivateModdedRoleAbility(PlayerControl player) =>
+        ActivateRoleAbility(player, vanillaButton: false);
+
+    public static bool ActivateVanillaRoleAbility(PlayerControl player) =>
+        ActivateRoleAbility(player, vanillaButton: true);
+
+    private static bool ActivateRoleAbility(PlayerControl player, bool vanillaButton)
     {
-        var activated = PolusRoleMechanics.Activate(player);
+        var activated = vanillaButton
+            ? PolusRoleMechanics.ActivateVanillaRoleAbility(player)
+            : PolusRoleMechanics.ActivateModdedRoleAbility(player);
         if (activated && player != null) CheckNeutralWin(player);
         return activated;
     }
+
+    // Kept as a compatibility alias for existing Polus call sites.
+    public static bool ActivateRoleAbilityLegacy(PlayerControl player) =>
+        ActivateModdedRoleAbility(player);
 
 
     private static void CheckNeutralWin(PlayerControl player)
