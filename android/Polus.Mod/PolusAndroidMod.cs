@@ -28,7 +28,8 @@ public sealed class PolusAndroidMod : MelonMod
     private static int _meetingNumber;
     private static string _status = "Choose a mode to continue.";
     private static Rect _panel = new(18, 70, 380, 520);
-    private static Vector2 _optionsScroll;
+    private static int _rolePage;
+    private static readonly HashSet<byte> NeutralObjectiveNotices = new();
     private static string _modeFile = "";
 
     public override void OnInitializeMelon()
@@ -63,15 +64,7 @@ public sealed class PolusAndroidMod : MelonMod
         if (GUI.Button(new Rect(Screen.width - 150, 12, 138, 42), "POLUS  •  MENU"))
             _panelOpen = !_panelOpen;
 
-        if (_panelOpen)
-        {
-            GUI.BeginArea(_panel);
-            GUI.Box(new Rect(0, 0, _panel.width, _panel.height), "POLUS ANDROID");
-            GUILayout.BeginArea(new Rect(12, 30, _panel.width - 24, _panel.height - 42));
-            DrawPanel(0);
-            GUILayout.EndArea();
-            GUI.EndArea();
-        }
+        if (_panelOpen) DrawPanel(0);
 
         var localId = GetLocalPlayerId();
         if (localId.HasValue && AssignedRoles.TryGetValue(localId.Value, out var role))
@@ -114,46 +107,70 @@ public sealed class PolusAndroidMod : MelonMod
 
     private void DrawPanel(int id)
     {
-        GUILayout.BeginVertical();
-        GUILayout.Label(_status);
-        GUILayout.Space(8);
-        GUILayout.Label("Role options");
-        _optionsScroll = GUILayout.BeginScrollView(_optionsScroll, GUILayout.Height(190));
-        foreach (var roleOption in _catalog)
+        GUI.Box(_panel, "POLUS ANDROID");
+        var left = _panel.x + 12f;
+        var width = _panel.width - 24f;
+        var y = _panel.y + 34f;
+        GUI.Label(new Rect(left, y, width, 34), _status);
+        y += 38f;
+        GUI.Label(new Rect(left, y, width, 24), "Role options");
+        y += 25f;
+
+        const int pageSize = 6;
+        var pageCount = Math.Max(1, (int)Math.Ceiling(_catalog.Count / (double)pageSize));
+        _rolePage = Math.Clamp(_rolePage, 0, pageCount - 1);
+        foreach (var roleOption in _catalog.Skip(_rolePage * pageSize).Take(pageSize))
         {
             var enabledKey = "role." + roleOption.Id + ".enabled";
             var enabled = PolusHostRoles.GetOption(enabledKey, roleOption.EnabledByDefault);
-            var nextEnabled = GUILayout.Toggle(enabled, "Enable " + roleOption.Name);
-            if (nextEnabled != enabled) PolusHostRoles.SetOption(enabledKey, nextEnabled);
+            var toggleText = (enabled ? "[ON] " : "[OFF] ") + roleOption.Name;
+            if (GUI.Button(new Rect(left, y, width, 28), toggleText))
+                PolusHostRoles.SetOption(enabledKey, !enabled);
+            y += 28f;
+
             var weightKey = "role." + roleOption.Id + ".spawnWeight";
             var weight = PolusHostRoles.GetOption(weightKey, roleOption.SpawnChance);
-            GUILayout.Label(roleOption.Name + " spawn weight: " + weight);
-            var nextWeight = Mathf.RoundToInt(GUILayout.HorizontalSlider(weight, 0, 100));
-            if (nextWeight != weight) PolusHostRoles.SetOption(weightKey, nextWeight);
+            GUI.Label(new Rect(left, y, width - 90f, 24), roleOption.Team + "  •  Spawn weight: " + weight);
+            if (GUI.Button(new Rect(left + width - 82f, y, 36f, 24), "-"))
+                PolusHostRoles.SetOption(weightKey, Math.Max(0, weight - 5));
+            if (GUI.Button(new Rect(left + width - 42f, y, 36f, 24), "+"))
+                PolusHostRoles.SetOption(weightKey, Math.Min(100, weight + 5));
+            y += 28f;
         }
-        GUILayout.EndScrollView();
-        GUILayout.Space(8);
-        if (GUILayout.Button("Assign roles (host / private lobby)"))
+
+        if (GUI.Button(new Rect(left, y, 78f, 28f), "Previous"))
+            _rolePage = Math.Max(0, _rolePage - 1);
+        GUI.Label(new Rect(left + 82f, y, width - 164f, 28f), "Page " + (_rolePage + 1) + " / " + pageCount);
+        if (GUI.Button(new Rect(left + width - 78f, y, 78f, 28f), "Next"))
+            _rolePage = Math.Min(pageCount - 1, _rolePage + 1);
+        y += 34f;
+
+        if (GUI.Button(new Rect(left, y, width, 30f), "Assign roles (host / private lobby)"))
             AssignRoles();
-        if (GUILayout.Button("Call emergency meeting"))
+        y += 34f;
+        if (GUI.Button(new Rect(left, y, width, 30f), "Call emergency meeting"))
             RequestMeeting();
+        y += 34f;
+
         var localPlayerId = GetLocalPlayerId();
         if (localPlayerId.HasValue && AssignedRoles.TryGetValue(localPlayerId.Value, out var localRole))
         {
-            GUILayout.Label("Role: " + localRole.Name);
-            GUILayout.Label("Objective progress: " + SharedEffects.GetProgress(localPlayerId.Value));
+            GUI.Label(new Rect(left, y, width, 24f), "Role: " + localRole.Name + "  •  Progress: " + SharedEffects.GetProgress(localPlayerId.Value));
+            y += 25f;
         }
-        if (GUILayout.Button("Hide menu"))
-            _panelOpen = false;
-        GUILayout.Space(8);
-        GUILayout.Label("Assigned roles");
+
+        GUI.Label(new Rect(left, y, width, 24f), "Assigned roles");
+        y += 24f;
         lock (StateLock)
         {
-            foreach (var entry in AssignedRoles.OrderBy(x => x.Key))
-                GUILayout.Label($"Player {entry.Key}: {entry.Value.Name}");
+            foreach (var entry in AssignedRoles.OrderBy(x => x.Key).Take(4))
+            {
+                GUI.Label(new Rect(left, y, width, 22f), "Player " + entry.Key + ": " + entry.Value.Name);
+                y += 22f;
+            }
         }
-        GUILayout.EndVertical();
-        GUI.DragWindow(new Rect(0, 0, 10000, 28));
+        if (GUI.Button(new Rect(left, _panel.yMax - 38f, width, 28f), "Hide menu"))
+            _panelOpen = false;
     }
 
     private void SelectMode(bool modded)
@@ -239,6 +256,7 @@ public sealed class PolusAndroidMod : MelonMod
             PolusHostRoles.ResetMatch();
             SharedRoleEngine.EndMatch();
             SharedEffects.EndMatch();
+            NeutralObjectiveNotices.Clear();
             _meetingNumber = 0;
             var assignments = _hostRuntime.StartMatch(players.Select(p => new PlayerSlot(p)).ToArray(),
                 configuredCatalog, settings, impostorCount: 1, neutralCount: neutralCount);
@@ -393,6 +411,7 @@ public sealed class PolusAndroidMod : MelonMod
         return result.Distinct().ToList();
     }
 
+    internal static void SetStatusForApi(string message) => _status = message;
     internal static bool IsHostForApi() => IsHost();
     internal static object? GetPlayerForApi(byte playerId) => GetPlayerById(playerId);
     internal static object? GetMemberForApi(object target, string name) => GetMember(target, name);
