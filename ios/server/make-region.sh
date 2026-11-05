@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 https://your-temporary-host.trycloudflare.com [output-file]"
+  echo "Usage: bash $0 https://your-temporary-host.trycloudflare.com [output-file]"
   exit 2
 fi
 
@@ -21,9 +21,29 @@ if parsed.scheme != "https" or not parsed.hostname:
     raise SystemExit("The matchmaking URL must be a valid https:// URL.")
 
 host = parsed.hostname
-region = {
-    "CurrentRegionIdx": 3,
-    "Regions": [{
+regions = [
+    {
+        "$type": "StaticHttpRegionInfo, Assembly-CSharp",
+        "Name": "North America",
+        "PingServer": "matchmaker.among.us",
+        "Servers": [{"Name": "Http-1", "Ip": "https://matchmaker.among.us", "Port": 443, "UseDtls": True}],
+        "TranslateName": 289
+    },
+    {
+        "$type": "StaticHttpRegionInfo, Assembly-CSharp",
+        "Name": "Europe",
+        "PingServer": "matchmaker-eu.among.us",
+        "Servers": [{"Name": "Http-1", "Ip": "https://matchmaker-eu.among.us", "Port": 443, "UseDtls": True}],
+        "TranslateName": 290
+    },
+    {
+        "$type": "StaticHttpRegionInfo, Assembly-CSharp",
+        "Name": "Asia",
+        "PingServer": "matchmaker-as.among.us",
+        "Servers": [{"Name": "Http-1", "Ip": "https://matchmaker-as.among.us", "Port": 443, "UseDtls": True}],
+        "TranslateName": 291
+    },
+    {
         "$type": "StaticHttpRegionInfo, Assembly-CSharp",
         "Name": "Polus iOS",
         "PingServer": host,
@@ -36,10 +56,11 @@ region = {
             "ConnectionFailures": 0
         }],
         "TranslateName": 1003
-    }]
-}
-pathlib.Path(output).write_text(json.dumps(region, indent=2) + "\n")
+    }
+]
+region_info = {"CurrentRegionIdx": 3, "Regions": regions}
+pathlib.Path(output).write_text(json.dumps(region_info, indent=2) + "\n")
 print(f"Wrote {output}")
-print(f"HTTPS matchmaking: https://{host}:443")
-print("The server's UDP address is configured separately in runtime/config.json.")
+print(f"Selected region: Polus iOS (https://{host}:443)")
+print("The server's UDP game address is configured separately in runtime/config.json.")
 PY
