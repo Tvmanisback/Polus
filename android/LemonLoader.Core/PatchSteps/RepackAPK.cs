@@ -45,6 +45,7 @@ internal class RepackAPK : IPatchStep
         CopyTo(archive, Path.Combine(patcher.Info.LemonDataDirectory, "MelonLoader"), "assets/MelonLoader");
         CopyTo(archive, Path.Combine(patcher.Info.LemonDataDirectory, "dotnet"), "assets/dotnet");
         WritePatchDate(archive);
+        CopyRuntimeMods(archive, patcher.Args.AdditionalModFiles);
 
         // libs data
         if (!patcher.Args.IsSplit)
@@ -85,6 +86,23 @@ internal class RepackAPK : IPatchStep
             using FileStream sourceStream = File.Open(file, FileMode.Open);
             using Stream entryStream = entry.Open();
             sourceStream.CopyTo(entryStream);
+        }
+    }
+
+    private static void CopyRuntimeMods(ZipArchive archive, string[]? files)
+    {
+        if (files == null) return;
+        foreach (string file in files)
+        {
+            if (!File.Exists(file))
+                throw new FileNotFoundException("A Polus Android mod assembly is missing.", file);
+
+            string entryPath = "assets/copyToBase/Mods/" + Path.GetFileName(file);
+            archive.GetEntry(entryPath)?.Delete();
+            ZipArchiveEntry entry = archive.CreateEntry(entryPath, CompressionLevel.Optimal);
+            using FileStream source = File.OpenRead(file);
+            using Stream destination = entry.Open();
+            source.CopyTo(destination);
         }
     }
 
