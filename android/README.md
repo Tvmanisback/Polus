@@ -1,44 +1,30 @@
 # Polus Android
 
-Polus includes an Android ARM64 patcher app and a separate LemonLoader-based Among Us plugin.
+Polus Android is a standalone, host-only Among Us mod designed to run through a compatible Android mod loader such as Starlight.
 
-## Android patcher
+## Design
 
-1. Install the official Among Us Android package (`com.innersloth.spacemafia`).
-2. Open Polus on an ARM64 Android device.
-3. Select **Patch installed Among Us**.
-4. Polus copies the installed base and split APKs into its private cache, downloads the LemonLoader runtime payload, and runs the vendored patch pipeline.
-5. Review the generated APK parts in the patcher. The original installation is not silently removed.
-6. If you choose **Replace Among Us**, Android displays its own uninstall confirmation and then the install confirmation for the patched package.
+- **No MiraAPI or Reactor dependency in the Android mod.**
+- Uses a Polus-owned role registry, options, ability cooldowns, meeting abilities, and match state.
+- Follows a Town-of-Host-style architecture: the host owns role assignment and role logic; unmodified clients do not need Polus installed.
+- Vanilla mode leaves Polus gameplay hooks disabled.
+- Modded mode enables Polus host-side hooks and the in-game host panel.
 
-The patcher does not use Shizuku. Replacing a Play Store-signed app with a differently signed build requires uninstalling the original first, which can remove local game data. Back up important data before proceeding.
+## Current Android project
 
-## In-game Android plugin
+- `Polus.Android`: Android patcher / companion app.
+- `LemonLoader.Core`: APK patching and installation support.
+- `Polus.Mod`: Android runtime plugin.
+- `PolusHostRoles.cs`: standalone host-side role and option registry.
+- `AndroidRoleMechanics.cs`: role-specific task, ability, and meeting state.
+- `Roles.json`: role catalog embedded into the Android mod.
 
-The Android plugin targets LemonLoader/MelonLoader on Android ARM64 Unity IL2CPP. When the plugin loads, the game displays a **Vanilla / Polus Modded** mode selector. The Modded mode enables the Polus host panel, role actions, meeting hooks, task events, and host-observed vote events.
+## Host-only compatibility
 
-The Android MiraAPI compatibility surface provides:
+The Android mod does not require other players to install Polus just to join a lobby. Role assignment and ability validation are performed by the host. Features that require custom UI or custom code on remote clients are not advertised as vanilla-compatible. Each role mechanic must use game-native behavior to affect an unmodified client; a host-side status message alone is not a replicated in-game effect.
 
-- Role, action-button, and meeting-button registries.
-- Role options and spawn-weight settings.
-- Plugin registration through `IMiraPlugin` and `MiraApi.RegisterPlugin`.
-- Match, role, task, meeting, vote, ability, and game-end events.
-- Modifier, game-end-condition, compatibility, color, asset, keybind, and local-settings registries.
-- Host-side role assignment and ability validation.
+## Build
 
-### Host-only behavior
+The Android workflow builds the runtime and patcher, launches the patcher in an Android emulator, captures its UI, and uploads the screenshot and build artifacts.
 
-This Android implementation intentionally does not add a custom client RPC protocol. The host can track Polus roles and execute host-side actions, but vanilla clients do not receive custom role UI, role state, or role-specific effects. Vote hooks observe votes; they do not rewrite the game's vote result.
-
-This is an Android-native compatibility API, not a drop-in port of every upstream MiraAPI/BepInEx/Reactor feature. Upstream game patches, custom HUD rendering, cross-client role synchronization, and full custom win-condition integration still require Android-specific implementations.
-
-## Build and screenshot
-
-The `.github/workflows/android.yml` workflow builds the Android plugin and patcher APK, starts an Android emulator, launches the patcher, captures its UI as `polus-android-patcher.png`, and uploads the screenshot as the `Polus-Android-Patcher-Screenshot` artifact. The APK and plugin assemblies are uploaded separately.
-
-## Compatibility
-
-- Android ARM64 devices.
-- Unity IL2CPP game builds only.
-- The exact Among Us version and APK split layout must match the generated interop data and LemonLoader runtime.
-- A successful patch does not guarantee that every game release is compatible.
+The project is independent of the upstream MiraAPI framework.
