@@ -1,21 +1,23 @@
 # Polus Android
 
-Polus Android is a companion app for checking whether a device can run the Android version of Among Us.
+Polus Android is the Android launcher/setup front end for the Polus project.
 
-## Setup compatibility checks
+## Current Android app
 
-- Requires Android 11 (API 30) or newer.
-- Checks that the official Among Us Android package (`com.innersloth.spacemafia`) is installed.
-- Checks that Android can launch Among Us.
-- Does not require Google sign-in, Play Games Services, a Google Cloud project, or a Play Console account.
-- Does not modify or replace the original Among Us installation.
+- Detects the installed Among Us package (`com.innersloth.spacemafia`).
+- Displays the installed game version and APK path.
+- Launches the installed game in vanilla mode.
+- Integrates the Shizuku API and requests permission through Shizuku's normal authorization prompt.
+- Does not uninstall, replace, or modify the installed Among Us app during setup.
 
-## Android patching status
+## Patching status
 
-Android patching is not implemented yet. The existing Polus plugin targets Windows BepInEx IL2CPP x64. Those Windows assemblies are not Android-compatible and cannot be copied into the Android game.
+The Android UI is not yet a complete game patcher. The next required integration is the LemonLoader Android patch pipeline plus game-specific IL2CPP Interop generated for the exact installed Among Us build. The Android Polus plugin must also be ported from the Windows BepInEx IL2CPP x64 plugin.
 
-A real Android patch requires an Android-compatible Polus plugin and a compatible, supported Android loading/integration method. The app keeps the Patch control disabled until that payload exists; it will not report a fake successful patch.
+The LemonLoader Android workflow documents ARM64 Unity IL2CPP support, but requires matching game-specific Interop and an external APK patch/sign/install stage. Its documentation also warns that replacing an installed APK can affect app data. Polus must back up required data and verify a restore path before enabling an install operation.
+
+Shizuku is integrated as a permission API only. Polus does not run arbitrary shell commands or claim to have copied OBB files. OBB handling must be implemented as a checked backup/copy operation before any patch can be reported successful.
 
 ## Build
 
-The workflow `.github/workflows/android.yml` builds a debug APK and uploads it as the `Polus-Android-debug` artifact. Run it from the repository's Actions tab, or push a change under `android/`.
+The workflow `.github/workflows/android.yml` builds a debug APK and uploads it as `Polus-Android-debug`.
