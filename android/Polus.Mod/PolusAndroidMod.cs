@@ -87,8 +87,7 @@ public sealed class PolusAndroidMod : MelonMod
             GUI.Label(new Rect(12, Screen.height - 36, 320, 28), "POLUS MEETING");
             var meetingPlayerId = GetLocalPlayerId();
             if (meetingPlayerId.HasValue && AssignedRoles.TryGetValue(meetingPlayerId.Value, out var meetingRole)
-                && PolusHostRoles.HasMeetingButton(meetingRole.Id)
-                && AndroidRoleMechanics.HasMeetingAbility(meetingRole.Id, meetingPlayerId.Value))
+                && SharedEffects.HasMeetingAbility(meetingPlayerId.Value))
             {
                 if (GUI.Button(new Rect(12, Screen.height - 92, 178, 48), "MEETING ABILITY"))
                 {
@@ -142,7 +141,7 @@ public sealed class PolusAndroidMod : MelonMod
         if (localPlayerId.HasValue && AssignedRoles.TryGetValue(localPlayerId.Value, out var localRole))
         {
             GUILayout.Label("Role: " + localRole.Name);
-            GUILayout.Label("Progress: " + AndroidRoleMechanics.GetProgress(localPlayerId.Value, localRole.Id));
+            GUILayout.Label("Objective progress: " + SharedEffects.GetProgress(localPlayerId.Value));
         }
         if (GUILayout.Button("Hide menu"))
             _panelOpen = false;
@@ -194,7 +193,6 @@ public sealed class PolusAndroidMod : MelonMod
         _hostRuntime = null;
         if (IsHost()) { SharedRoleEngine.EndMatch(); SharedEffects.EndMatch(); }
         lock (StateLock) { AssignedRoles.Clear(); AbilityUses.Clear(); }
-        AndroidRoleMechanics.Reset();
     }
 
     private void PatchByName(string typeName, string methodName, MethodInfo? prefix = null, MethodInfo? postfix = null)
@@ -241,7 +239,6 @@ public sealed class PolusAndroidMod : MelonMod
             PolusHostRoles.ResetMatch();
             SharedRoleEngine.EndMatch();
             SharedEffects.EndMatch();
-            AndroidRoleMechanics.Reset();
             _meetingNumber = 0;
             var assignments = _hostRuntime.StartMatch(players.Select(p => new PlayerSlot(p)).ToArray(),
                 configuredCatalog, settings, impostorCount: 1, neutralCount: neutralCount);
@@ -315,7 +312,6 @@ public sealed class PolusAndroidMod : MelonMod
         {
             var transform = GetMember(local, "transform");
             var position = transform == null ? Vector3.zero : (Vector3)(GetMember(transform, "position") ?? Vector3.zero);
-            AndroidRoleMechanics.OnMeeting(localId.Value, position, role.Id);
         }
     }
 
@@ -370,7 +366,6 @@ public sealed class PolusAndroidMod : MelonMod
             var taskType = __args?.FirstOrDefault()?.ToString() ?? "task";
             var transform = GetMember(__instance, "transform");
             var position = transform == null ? Vector3.zero : (Vector3)(GetMember(transform, "position") ?? Vector3.zero);
-            AndroidRoleMechanics.RecordTask(playerId, position, taskType);
             SharedRoleEngine.RecordTask(playerId, taskType, position.x, position.y);
             SharedEffects.RecordTask(playerId, taskType, position.x, position.y);
         }
