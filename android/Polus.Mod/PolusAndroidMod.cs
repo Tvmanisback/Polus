@@ -137,7 +137,7 @@ public sealed class PolusAndroidMod : MelonMod
         GUI.Label(new Rect(left, y, width, 24), "Role options");
         y += 25f;
 
-        const int pageSize = 6;
+        const int pageSize = 4;
         var pageCount = Math.Max(1, (int)Math.Ceiling(_catalog.Count / (double)pageSize));
         _rolePage = Math.Clamp(_rolePage, 0, pageCount - 1);
         foreach (var roleOption in _catalog.Skip(_rolePage * pageSize).Take(pageSize))
@@ -184,7 +184,7 @@ public sealed class PolusAndroidMod : MelonMod
         y += 24f;
         lock (StateLock)
         {
-            foreach (var entry in AssignedRoles.OrderBy(x => x.Key).Take(4))
+            foreach (var entry in AssignedRoles.OrderBy(x => x.Key).Take(2))
             {
                 GUI.Label(new Rect(left, y, width, 22f), "Player " + entry.Key + ": " + entry.Value.Name);
                 y += 22f;
