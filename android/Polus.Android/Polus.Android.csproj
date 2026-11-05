@@ -10,6 +10,7 @@
     <SupportedOSPlatformVersion>26.0</SupportedOSPlatformVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>$(NoWarn);NETSDK1202</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../LemonLoader.Core/MelonLoader.Installer.Core.csproj" />
