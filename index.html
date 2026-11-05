@@ -44,7 +44,7 @@ launchButton.addEventListener("click", () => {
   const port = Number(portInput.value);
 
   // Among Us' init deep link expects a numeric IP address, not a DNS hostname.
-  const ipv4 = /^(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)){3}$/;
+  const ipv4 = /^(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?:\\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}$/;
   if (!ipv4.test(ip)) {
     status.textContent = "Enter the server's public IPv4 address (not a domain name).";
     ipInput.focus();
