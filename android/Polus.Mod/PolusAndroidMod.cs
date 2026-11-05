@@ -33,18 +33,9 @@ public sealed class PolusAndroidMod : MelonMod
     {
         _modeFile = Path.Combine(MelonEnvironment.UserDataDirectory, "Polus.mode");
         _catalog = LoadCatalog();
-        try
-        {
-            if (File.Exists(_modeFile))
-            {
-                var saved = File.ReadAllText(_modeFile).Trim();
-                if (saved.Equals("modded", StringComparison.OrdinalIgnoreCase)) SelectMode(true);
-                else if (saved.Equals("vanilla", StringComparison.OrdinalIgnoreCase)) SelectMode(false);
-            }
-        }
-        catch (Exception ex) { LoggerInstance.Warning("Could not read saved mode: " + ex.Message); }
-
-        LoggerInstance.Msg("Polus Android loaded. The in-game mode selector will appear before Polus features activate.");
+        _choiceMade = false;
+        _moddedMode = false;
+        LoggerInstance.Msg("Polus Android loaded. Choose Vanilla or Polus Modded on every launch.");
     }
 
     public override void OnUpdate()
@@ -202,18 +193,33 @@ public sealed class PolusAndroidMod : MelonMod
     {
         if (!IsHost())
         {
-            _status = "Ability requests are host-authoritative in this build.";
+            SendRpc(RoleActionRpc, $"ACTION_REQ|{playerId}|{role.Id}");
+            _status = $"Sent {role.Name} ability request to the host.";
             return;
         }
-        if (_hostRuntime == null) { _status = "The host must assign roles first."; return; }
-        var result = _hostRuntime.TryUseAbility(playerId, DateTimeOffset.UtcNow);
-        _status = result.Accepted ? $"{role.Name}: ability request accepted." : result.Message;
-        if (result.Accepted)
+        AcceptAbilityRequest(playerId, role.Id);
+    }
+
+    private static void AcceptAbilityRequest(byte playerId, string roleId)
+    {
+        if (_hostRuntime == null || !AssignedRoles.TryGetValue(playerId, out var assigned)
+            || !assigned.Id.Equals(roleId, StringComparison.OrdinalIgnoreCase))
         {
-            var uses = AbilityUses.GetValueOrDefault(playerId) + 1;
-            AbilityUses[playerId] = uses;
-            SendRpc(RoleActionRpc, $"ACTION|{playerId}|{role.Id}|{uses}");
+            _status = "Host rejected an invalid role ability request.";
+            return;
         }
+
+        var result = _hostRuntime.TryUseAbility(playerId, DateTimeOffset.UtcNow);
+        if (!result.Accepted)
+        {
+            _status = result.Message;
+            return;
+        }
+
+        var uses = AbilityUses.GetValueOrDefault(playerId) + 1;
+        AbilityUses[playerId] = uses;
+        _status = $"{assigned.Name}: host accepted ability request #{uses}.";
+        SendRpc(RoleActionRpc, $"ACTION_OK|{playerId}|{assigned.Id}|{uses}");
     }
 
     private void RequestMeeting()
@@ -251,7 +257,14 @@ public sealed class PolusAndroidMod : MelonMod
                 lock (StateLock) AssignedRoles[playerId] = role;
                 _status = $"Role received: {role.Name}.";
             }
-            else if (parts[0] == "ACTION")
+            else if (parts[0] == "ACTION_REQ" && parts.Length >= 3 && IsHost()
+                && byte.TryParse(parts[1], out var actorId)
+                && TryGetByte(__instance, "PlayerId", out var rpcPlayerId)
+                && rpcPlayerId == actorId)
+            {
+                AcceptAbilityRequest(actorId, parts[2]);
+            }
+            else if (parts[0] == "ACTION_OK")
             {
                 _status = $"Player {parts[1]} used a Polus role ability.";
             }
