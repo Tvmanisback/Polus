@@ -151,6 +151,8 @@ public sealed class MainActivity : Activity, IPatchLogger
         finally
         {
             Evaluate("window.Polus && window.Polus.busy(false)");
+            SetInstallEnabled(!string.IsNullOrWhiteSpace(_outputDirectory) &&
+                File.Exists(Path.Combine(_outputDirectory, "base.apk")));
         }
     }
 
