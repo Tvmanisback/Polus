@@ -18,7 +18,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: "9.0.x"
       - name: Install Android workload
         run: dotnet workload install android
       - name: Restore Android mod
@@ -30,7 +30,7 @@ jobs:
       - name: Restore Android patcher
         run: dotnet restore android/Polus.Android/Polus.Android.csproj
       - name: Build Polus Android APK
-        run: dotnet publish android/Polus.Android/Polus.Android.csproj -c Release -f net8.0-android35.0 -p:AndroidPackageFormat=apk
+        run: dotnet publish android/Polus.Android/Polus.Android.csproj -c Release -f net9.0-android35.0 -p:AndroidPackageFormat=apk
       - name: Locate APK
         id: apk
         shell: bash
