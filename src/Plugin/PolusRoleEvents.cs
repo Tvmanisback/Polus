@@ -79,9 +79,9 @@ public static class PolusRoleEvents
         foreach (var player in PlayerControl.AllPlayerControls.ToArray())
         {
             if (player == null || player.Data == null) continue;
-            var tasksSinceMeeting = GetCompletedTaskCount(player.PlayerId);
-            if (PolusRoleMechanics.ShouldGrantMeetingVote(player, tasksSinceMeeting))
-                player.GetVoteData().IncreaseRemainingVotes(1);
+            var meetingDecision = SharedEffects.TryUseMeetingAbility(player.PlayerId, out var meetingCommand);
+            if (meetingDecision.Accepted)
+                PolusRoleEffectAdapter.Execute(player, meetingCommand);
             PolusRoleMechanics.RecordMeeting(player);
             if (player.Data.Role is MediatorRole) CompletedTasks[player.PlayerId] = 0;
         }
