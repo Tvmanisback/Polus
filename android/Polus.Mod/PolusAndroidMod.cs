@@ -83,7 +83,13 @@ public sealed class PolusAndroidMod : MelonMod
                 && AndroidRoleMechanics.HasMeetingAbility(meetingRole.Id, meetingPlayerId.Value))
             {
                 if (GUI.Button(new Rect(12, Screen.height - 92, 178, 48), "MEETING ABILITY"))
-                    PolusHostRoles.TryUseMeetingAbility(meetingRole.Id, meetingPlayerId.Value, IsHost(), out _status);
+                {
+                    var sharedDecision = SharedEffects.TryUseMeetingAbility(meetingPlayerId.Value, out var meetingCommand);
+                    if (!sharedDecision.Accepted) _status = sharedDecision.Message;
+                    else if (PolusHostRoles.TryUseMeetingAbility(meetingRole.Id, meetingPlayerId.Value, IsHost(), out var adapterMessage))
+                        _status = meetingCommand.Message + " " + adapterMessage;
+                    else _status = adapterMessage;
+                }
             }
         }
     }
