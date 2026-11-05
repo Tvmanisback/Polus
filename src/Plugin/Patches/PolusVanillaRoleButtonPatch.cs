@@ -37,7 +37,7 @@ internal static class PolusVanillaRoleButtonUpdatePatch
         var inGame = MeetingHud.Instance == null &&
                      !player.Data.IsDead &&
                      AmongUsClient.Instance != null &&
-                     AmongUsClient.Instance.GameState == GameStates.Started;
+                     AmongUsClient.Instance.GameState == InnerNetClient.GameStates.Started;
 
         if (!inGame)
         {
@@ -68,7 +68,7 @@ internal static class PolusVanillaRoleButtonClickPatch
             MeetingHud.Instance != null ||
             player.Data.IsDead ||
             AmongUsClient.Instance == null ||
-            AmongUsClient.Instance.GameState != GameStates.Started)
+            AmongUsClient.Instance.GameState != InnerNetClient.GameStates.Started)
             return false;
 
         if (PolusVanillaRoleButtonUpdatePatch.CanActivate &&
