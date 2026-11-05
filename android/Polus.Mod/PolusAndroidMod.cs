@@ -31,7 +31,7 @@ public sealed class PolusAndroidMod : MelonMod
 
     public override void OnInitializeMelon()
     {
-        _modeFile = Path.Combine(MelonEnvironment.UserDataDirectory, "Polus.mode");
+        _modeFile = Path.Combine(Application.persistentDataPath, "Polus.mode");
         _catalog = LoadCatalog();
         AndroidMiraApi.RegisterRoles(_catalog);
         _choiceMade = false;
@@ -59,7 +59,7 @@ public sealed class PolusAndroidMod : MelonMod
             _panelOpen = !_panelOpen;
 
         if (_panelOpen)
-            _panel = GUI.Window(0x504F4C, _panel, DrawPanel, "POLUS ANDROID");
+            _panel = GUI.Window(0x504F4C, _panel, id => DrawPanel(id), "POLUS ANDROID");
 
         var localId = GetLocalPlayerId();
         if (localId.HasValue && AssignedRoles.TryGetValue(localId.Value, out var role))
@@ -285,7 +285,7 @@ public sealed class PolusAndroidMod : MelonMod
                 _status = "Player " + parts[1] + " used a Polus role ability.";
             }
         }
-        catch (Exception ex) { LoggerInstance.Warning("Polus RPC rejected: " + ex.Message); }
+        catch (Exception ex) { MelonLogger.Warning("Polus RPC rejected: " + ex.Message); }
         return false;
     }
 
@@ -331,7 +331,7 @@ public sealed class PolusAndroidMod : MelonMod
             var position = transform == null ? Vector3.zero : (Vector3)(GetMember(transform, "position") ?? Vector3.zero);
             AndroidRoleMechanics.RecordTask(playerId, position, taskType);
         }
-        catch (Exception ex) { LoggerInstance.Warning("Task progress hook failed: " + ex.Message); }
+        catch (Exception ex) { MelonLogger.Warning("Task progress hook failed: " + ex.Message); }
     }
 
     private static IReadOnlyList<RoleDefinition> LoadCatalog()
