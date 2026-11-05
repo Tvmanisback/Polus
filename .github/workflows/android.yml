@@ -14,21 +14,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Java
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
         with:
-          distribution: temurin
-          java-version: "17"
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.13"
-      - name: Build debug APK
-        run: gradle -p android :app:assembleDebug
+          dotnet-version: "8.0.x"
+      - name: Install Android workload
+        run: dotnet workload install android
+      - name: Restore
+        run: dotnet restore android/Polus.Android/Polus.Android.csproj
+      - name: Build Polus Android APK
+        run: dotnet publish android/Polus.Android/Polus.Android.csproj -c Release -f net8.0-android35.0 -p:AndroidPackageFormat=apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Polus-Android-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: Polus-Android-LemonLoader
+          path: android/Polus.Android/bin/Release/net8.0-android35.0/publish/*.apk
