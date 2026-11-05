@@ -21,6 +21,31 @@ public sealed class MiraApi
     public MiraKeybindRegistry Keybinds { get; } = new();
     public MiraLocalSettings LocalSettings { get; } = new();
     public MiraVotingLedger Voting { get; } = new();
+    public MiraModifierRegistry Modifiers { get; } = new();
+    public MiraGameEndConditionRegistry GameEndConditions { get; } = new();
+    public MiraCompatibilityRegistry Compatibility { get; } = new();
+    private readonly HashSet<IMiraPlugin> _plugins = new();
+    private readonly object _pluginGate = new();
+
+    public IReadOnlyCollection<IMiraPlugin> Plugins
+    {
+        get { lock (_pluginGate) return _plugins.ToArray(); }
+    }
+
+    public void RegisterPlugin(IMiraPlugin plugin)
+    {
+        ArgumentNullException.ThrowIfNull(plugin);
+        lock (_pluginGate)
+        {
+            if (!_plugins.Add(plugin)) return;
+        }
+        try { plugin.Initialize(this); }
+        catch
+        {
+            lock (_pluginGate) _plugins.Remove(plugin);
+            throw;
+        }
+    }
 
     public void ResetMatch()
     {
@@ -34,6 +59,46 @@ public sealed class MiraApi
 public interface IMiraPlugin
 {
     void Initialize(MiraApi api);
+}
+
+public sealed record MiraModifier(string Id, string Name, string Description);
+public sealed record MiraGameEndCondition(string Id, string Name, Func<string?> Evaluate);
+public sealed record MiraCompatibilityRule(string Id, Func<bool> IsCompatible, string Warning);
+
+public sealed class MiraModifierRegistry
+{
+    private readonly Dictionary<string, MiraModifier> _items = new(StringComparer.OrdinalIgnoreCase);
+    public IReadOnlyCollection<MiraModifier> All => _items.Values;
+    public void Register(MiraModifier modifier) => _items[modifier.Id] = modifier;
+    public bool TryGet(string id, out MiraModifier modifier) => _items.TryGetValue(id, out modifier!);
+}
+
+public sealed class MiraGameEndConditionRegistry
+{
+    private readonly Dictionary<string, MiraGameEndCondition> _items = new(StringComparer.OrdinalIgnoreCase);
+    public IReadOnlyCollection<MiraGameEndCondition> All => _items.Values;
+    public void Register(MiraGameEndCondition condition) => _items[condition.Id] = condition;
+    public bool TryEvaluate(out string reason)
+    {
+        foreach (var condition in _items.Values)
+        {
+            var result = condition.Evaluate();
+            if (!string.IsNullOrWhiteSpace(result)) { reason = result; return true; }
+        }
+        reason = string.Empty;
+        return false;
+    }
+}
+
+public sealed class MiraCompatibilityRegistry
+{
+    private readonly Dictionary<string, MiraCompatibilityRule> _rules = new(StringComparer.OrdinalIgnoreCase);
+    public IReadOnlyCollection<MiraCompatibilityRule> All => _rules.Values;
+    public void Register(MiraCompatibilityRule rule) => _rules[rule.Id] = rule;
+    public IReadOnlyList<string> GetWarnings() => _rules.Values
+        .Where(rule => !rule.IsCompatible())
+        .Select(rule => rule.Warning)
+        .ToArray();
 }
 
 public sealed record MiraRole(string Id, string Name, string Team, string Description,
