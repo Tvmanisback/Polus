@@ -61,10 +61,11 @@ jobs:
             exit 1
           fi
           cp config.template.json runtime/config.json
+          # Use a delimiter that cannot conflict with an IPv4 address.
+          # Replace only the template values; this avoids fragile quote escaping.
           sed -i \
-            -e "s/\\"PublicIp\\": \\"127.0.0.1\\"/\\"PublicIp\\": \\"${HOST}\\"/" \
-            -e "s/\\"PublicPort\\": 22023/\\"PublicPort\\": ${PORT}/" \
-            -e "s/\\"ListenPort\\": 22023/\\"ListenPort\\": ${PORT}/g" \
+            -e "s|127\.0\.0\.1|\${HOST}|g" \
+            -e "s|22023|\${PORT}|g" \
             runtime/config.json
           echo "Starting Polus Impostor on port ${PORT}; public IP ${HOST}"
           cd runtime
