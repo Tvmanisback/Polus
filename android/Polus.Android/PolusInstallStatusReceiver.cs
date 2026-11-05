@@ -14,12 +14,12 @@ public sealed class PolusInstallStatusReceiver : BroadcastReceiver
     public override void OnReceive(Context? context, Intent? intent)
     {
         if (context == null || intent == null) return;
-        var status = intent.GetIntExtra(PackageInstaller.ExtraStatus, PackageInstaller.StatusFailure);
+        var status = intent.GetIntExtra(PackageInstaller.ExtraStatus, 1);
         var message = intent.GetStringExtra(PackageInstaller.ExtraStatusMessage) ?? "No installer details were provided.";
 
-        if (status == PackageInstaller.StatusPendingUserAction)
+        if (status == -1)
         {
-            var confirmation = intent.GetParcelableExtra(PackageInstaller.ExtraIntent) as Intent;
+            var confirmation = intent.GetParcelableExtra("android.intent.extra.INTENT") as Intent;
             if (confirmation != null)
             {
                 confirmation.AddFlags(ActivityFlags.NewTask);
@@ -28,7 +28,7 @@ public sealed class PolusInstallStatusReceiver : BroadcastReceiver
             return;
         }
 
-        var text = status == PackageInstaller.StatusSuccess
+        var text = status == 0
             ? "Polus-patched Among Us installed. Open the game to choose Vanilla or Polus Modded."
             : "Among Us install failed: " + message;
         Toast.MakeText(context, text, ToastLength.Long)?.Show();
