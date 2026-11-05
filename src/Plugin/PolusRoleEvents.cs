@@ -66,8 +66,8 @@ public static class PolusRoleEvents
         return activated;
     }
 
-    // Kept as a compatibility alias for existing Polus call sites.
-    public static bool ActivateRoleAbilityLegacy(PlayerControl player) =>
+    // Compatibility alias for the existing MiraAPI button.
+    public static bool ActivateRoleAbility(PlayerControl player) =>
         ActivateModdedRoleAbility(player);
 
 
