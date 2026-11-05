@@ -226,7 +226,8 @@ public sealed class PolusAndroidMod : MelonMod
             }).ToArray();
             var enabled = configuredCatalog.ToDictionary(r => r.Id,
                 r => PolusHostRoles.GetOption("role." + r.Id + ".enabled", r.EnabledByDefault), StringComparer.OrdinalIgnoreCase);
-            var settings = HostSettingsValidator.Validate(new HostSettings(true, 3, false, enabled));
+            var neutralCount = configuredCatalog.Any(r => r.Team == RoleTeam.Neutral && enabled[r.Id]) ? 1 : 0;
+            var settings = HostSettingsValidator.Validate(new HostSettings(true, 3, true, enabled));
             _hostRuntime = new RoleMatchRuntime(true);
             PolusHostRoles.ResetMatch();
             SharedRoleEngine.EndMatch();
@@ -234,7 +235,7 @@ public sealed class PolusAndroidMod : MelonMod
             AndroidRoleMechanics.Reset();
             _meetingNumber = 0;
             var assignments = _hostRuntime.StartMatch(players.Select(p => new PlayerSlot(p)).ToArray(),
-                configuredCatalog, settings, impostorCount: 1, neutralCount: 0);
+                configuredCatalog, settings, impostorCount: 1, neutralCount: neutralCount);
             SharedRoleEngine.StartMatch(assignments);
             SharedEffects.BeginMatch(assignments);
             lock (StateLock)
