@@ -60,4 +60,4 @@ trap 'kill "$IMPOSTOR_PID" 2>/dev/null || true' EXIT
 sleep 2
 cd /home/container
 echo "Starting HTTPS proxy at polus.yapyur.org:${PORT}"
-exec /home/container/caddy run --config /home/container/Caddyfile --adapter caddyfile
+/home/container/caddy run --config /home/container/Caddyfile --adapter caddyfile
