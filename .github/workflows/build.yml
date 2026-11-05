@@ -55,17 +55,66 @@ jobs:
         run: dotnet restore .\src\Plugin\Polus.Plugin.csproj --configfile nuget.config
 
       - name: Build plugin and role core
-        run: dotnet build .\\src\\Plugin\\Polus.Plugin.csproj -c Release --no-restore
+        run: dotnet build .\src\Plugin\Polus.Plugin.csproj -c Release --no-restore
 
       - name: Publish self-contained Windows x64 app
         run: dotnet publish .\src\Patcher\Patcher.csproj -c Release -r win-x64 --self-contained true
+
+      - name: Capture patcher screenshot
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class PolusWindowCapture {
+            [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+            [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+            [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int command);
+            [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
+          }
+          '@
+          $exe = (Resolve-Path "src/Patcher/bin/Release/net8.0-windows/win-x64/publish/Polus.exe").Path
+          $screenshot = Join-Path $PWD "Polus-Patcher-Screenshot.png"
+          $app = Start-Process -FilePath $exe -PassThru
+          try {
+            $handle = [IntPtr]::Zero
+            for ($i = 0; $i -lt 30; $i++) {
+              Start-Sleep -Seconds 1
+              $app.Refresh()
+              if ($app.HasExited) { throw "Polus exited before its screenshot could be captured." }
+              if ($app.MainWindowHandle -ne [IntPtr]::Zero) { $handle = $app.MainWindowHandle; break }
+            }
+            if ($handle -eq [IntPtr]::Zero) { throw "Polus window did not appear; screenshot was not captured." }
+            [void][PolusWindowCapture]::ShowWindow($handle, 9)
+            [void][PolusWindowCapture]::SetForegroundWindow($handle)
+            Start-Sleep -Seconds 3
+            $rect = New-Object PolusWindowCapture+RECT
+            if (![PolusWindowCapture]::GetWindowRect($handle, [ref]$rect)) { throw "Could not read the Polus window bounds." }
+            $width = $rect.Right - $rect.Left
+            $height = $rect.Bottom - $rect.Top
+            if ($width -lt 200 -or $height -lt 150) { throw "Polus window bounds are invalid." }
+            $bitmap = New-Object System.Drawing.Bitmap($width, $height)
+            $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+            try {
+              $graphics.CopyFromScreen($rect.Left, $rect.Top, 0, 0, $bitmap.Size)
+              $bitmap.Save($screenshot, [System.Drawing.Imaging.ImageFormat]::Png)
+            } finally {
+              $graphics.Dispose()
+              $bitmap.Dispose()
+            }
+            if (!(Test-Path $screenshot) -or (Get-Item $screenshot).Length -lt 10000) { throw "The patcher screenshot is missing or unexpectedly small." }
+          } finally {
+            if (!$app.HasExited) { Stop-Process -Id $app.Id -Force }
+          }
 
       - name: Package artifact
         shell: pwsh
         run: |
           $publish = "src/Patcher/bin/Release/net8.0-windows/win-x64/publish"
           if (!(Test-Path "$publish/Polus.exe")) { throw "Polus.exe was not produced." }
-          Compress-Archive -Path "$publish/Polus.exe" -DestinationPath "Polus-Windows-x64.zip"
+          if (!(Test-Path "Polus-Patcher-Screenshot.png")) { throw "Patcher screenshot was not produced." }
+          Compress-Archive -Path "$publish/Polus.exe", "Polus-Patcher-Screenshot.png" -DestinationPath "Polus-Windows-x64.zip"
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
