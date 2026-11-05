@@ -25,6 +25,7 @@ internal static class PolusRoleEffectAdapter
             "temporary_self_visual" => ApplyTemporaryVisual(actor, dark: true),
             "temporary_self_palette" => ApplyTemporaryVisual(actor, dark: false),
             "mark_nearest_player" => MarkNearest(actor),
+            "meeting_bonus_vote" => GrantBonusVote(actor, command.Value),
             _ => true
         };
 
@@ -92,4 +93,10 @@ internal static class PolusRoleEffectAdapter
         target.cosmetics.SetOutline(true, new Il2CppSystem.Nullable<Color>(Color.magenta));
         return true;
     }
+    private static bool GrantBonusVote(PlayerControl actor, int count)
+    {
+        actor.GetVoteData().IncreaseRemainingVotes(Mathf.Clamp(count, 1, 3));
+        return true;
+    }
+
 }
