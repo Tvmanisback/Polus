@@ -1,35 +1,35 @@
 # Polus Android
 
-Polus Android is the Android setup and patcher front end. It targets the official Among Us package already installed on the device.
+Polus Android is the setup front end for the official Among Us package already installed on the device.
 
-## Current app behavior
+## Current behavior
 
-- Detects the installed Among Us package (`com.innersloth.spacemafia`).
+- Detects Among Us (`com.innersloth.spacemafia`).
 - Inspects the base APK and split APKs for the expected ARM64 Unity IL2CPP files:
   - `lib/arm64-v8a/libil2cpp.so`
   - `lib/arm64-v8a/libmain.so`
   - `assets/bin/Data/Managed/Metadata/global-metadata.dat`
+- Detects the separate LemonLoader Installer app (`com.lavagang.melonloader.installer`).
+- Opens the installed LemonLoader Installer directly from Polus.
+- If the installer is not installed, opens the LemonLoader installer source repository.
 - Does not require Shizuku.
-- Setup/preflight does not modify or uninstall the game.
 
-## LemonLoader integration status
+## LemonLoader handoff
 
-The current LemonLoader Patcher is a desktop CLI/GUI that generates game-specific Interop, injects a Loader release into an APK, and optionally aligns/signs the result. It is not an Android library that can be called directly from this Kotlin app. The Android-focused LemonLoader installer is a separate .NET MAUI application with its own Android package install flow.
+Polus now has a real handoff to the Android LemonLoader Installer. The installer is a separate application maintained by the LemonLoader project; Polus does not bundle or reimplement its patch engine. Select Among Us inside that installer and follow its own patch flow.
 
-The app currently performs only a compatibility preflight. It does not yet contain the LemonLoader patch engine, so the Patch button remains disabled rather than pretending to patch the installed game.
+Official source: https://github.com/LemonLoader/MelonLoaderInstaller
+
+Important: the documented on-device installer flow can remove the target app's data during patching. Back up anything important first. Polus does not claim that the current installer flow preserves Among Us save data or OBB files. The compatibility check in Polus is only a basic APK-layout check and does not guarantee that a particular Among Us release is supported.
 
 ## In-game Vanilla / Modded selector
 
-The requested mode selector must be implemented inside the Unity game through an Android-compatible Polus plugin loaded by LemonLoader:
+The requested selector still needs a separate Android-compatible Unity plugin built for the exact Among Us game version and loaded by LemonLoader:
 
-- Vanilla: do not initialize Polus gameplay features or Polus role modules.
-- Modded: initialize the Polus Android plugin and its supported features.
+- Vanilla: start without Polus gameplay features.
+- Polus Modded: initialize the Android Polus plugin and supported features.
 
-This is not the same as a launcher screen. The existing Windows plugin targets BepInEx IL2CPP x64 and depends on Windows-targeted game libraries, so it cannot be copied into the Android build unchanged. An Android plugin port and a game-version-matched Interop build are required.
-
-## Important install constraint
-
-LemonLoader Patcher does not change the target package identity. Replacing the installed app requires Android to accept the APK signing identity. The older on-device installer flow may uninstall/reinstall the target and warns that app data can be lost. Polus must not run that flow without a tested backup and restore path for Among Us data.
+The existing Windows plugin targets BepInEx IL2CPP x64 and depends on Windows-targeted game libraries. It cannot be copied into the Android build unchanged.
 
 ## Build
 
