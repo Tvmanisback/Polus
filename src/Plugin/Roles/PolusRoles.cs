@@ -201,7 +201,7 @@ public sealed class MisdirectorRole : PolusImpostorRole
 {
     public override string IdPart => "misdirector";
     public override string RoleName => "Misdirector";
-    public override string RoleDescription => "Publishes a misleading room-statistic marker and tracks each published summary.";
+    public override string RoleDescription => "Can return to its previous meeting checkpoint to confuse movement tracking.";
 }
 
 public sealed class ScramblerRole : PolusImpostorRole
