@@ -45,6 +45,7 @@ public sealed class PolusAndroidMod : MelonMod
     public override void OnUpdate()
     {
         AndroidRoleEffectAdapter.Tick();
+        CheckNeutralObjectives();
         if (PolusHostRoles.TryGetKeybind("polus.menu", out var menuKey)
             && Enum.TryParse<KeyCode>(menuKey, true, out var key)
             && Input.GetKeyDown(key) && _choiceMade && _moddedMode)
@@ -91,6 +92,26 @@ public sealed class PolusAndroidMod : MelonMod
                     else _status = adapterMessage;
                 }
             }
+        }
+    }
+
+    private static void CheckNeutralObjectives()
+    {
+        if (!_moddedMode || !IsHost() || _hostRuntime == null || !_hostRuntime.IsRunning) return;
+        var requirements = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var role in _catalog.Where(r => r.Team == RoleTeam.Neutral))
+        {
+            var words = role.WinCondition.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length > 1 && int.TryParse(words[1], out var required) && required > 0)
+                requirements[role.Id] = required;
+        }
+
+        foreach (var completion in SharedEffects.GetCompletedNeutralObjectives(requirements))
+        {
+            if (!NeutralObjectiveNotices.Add(completion.PlayerId)) continue;
+            var roleName = _catalog.FirstOrDefault(r => r.Id.Equals(completion.RoleId, StringComparison.OrdinalIgnoreCase))?.Name
+                ?? completion.RoleId;
+            _status = roleName + " completed its neutral objective (" + completion.Progress + "/" + completion.Required + ").";
         }
     }
 
