@@ -8,6 +8,33 @@ namespace Polus.AndroidMod;
 /// <summary>Reflection-only bridge to vanilla Among Us actions on the Android host.</summary>
 internal static class AndroidRoleEffectAdapter
 {
+    private static readonly Dictionary<SpriteRenderer, Color> OriginalSpriteColors = new();
+    private static readonly Dictionary<SpriteRenderer, float> SpriteRestoreAt = new();
+    private static readonly Dictionary<object, float> OutlineRestoreAt = new();
+
+    public static void Tick()
+    {
+        foreach (var item in SpriteRestoreAt.Where(x => Time.time >= x.Value).ToArray())
+        {
+            if (item.Key != null && OriginalSpriteColors.TryGetValue(item.Key, out var color))
+                item.Key.color = color;
+            SpriteRestoreAt.Remove(item.Key);
+            OriginalSpriteColors.Remove(item.Key);
+        }
+
+        foreach (var item in OutlineRestoreAt.Where(x => Time.time >= x.Value).ToArray())
+        {
+            try
+            {
+                var method = item.Key.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                    .FirstOrDefault(m => m.Name == "SetOutline" && m.GetParameters().Length == 2);
+                method?.Invoke(item.Key, new object?[] { false, null });
+            }
+            catch { }
+            OutlineRestoreAt.Remove(item.Key);
+        }
+    }
+
     public static bool Execute(byte playerId, RoleEffectCommand command, out string result)
     {
         result = command.Message;
@@ -26,8 +53,13 @@ internal static class AndroidRoleEffectAdapter
                 "temporary_self_visual" => Tint(actor, true),
                 "temporary_self_palette" => Tint(actor, false),
                 "mark_nearest_player" => MarkNearest(actor),
-                "meeting_bonus_vote" => GrantBonusVote(actor),
-                _ => true
+                "meeting_bonus_vote" => GrantBonusVote(actor, command.Value),
+                "record_map_sector" or "audit_checkpoint" or "meeting_audit" or "decode_signal"
+                    or "delivery_ledger" or "event_ledger" or "beacon_status" or "mediation_status"
+                    or "calibration_status" or "signal_chain_status" or "store_checkpoint"
+                    or "private_decoy_entry" or "emit_signal_cue" or "record_trade"
+                    or "scramble_private_ledger" or "show_objective_progress" => true,
+                _ => false
             };
             if (!ok) result = command.Message + " (this game version did not expose the required action)";
             return ok;
@@ -108,8 +140,13 @@ internal static class AndroidRoleEffectAdapter
         var cosmetics = Member(player, "cosmetics");
         if (cosmetics is not Component component) return false;
         foreach (var sprite in component.GetComponentsInChildren<SpriteRenderer>(true))
+        {
+            if (!OriginalSpriteColors.ContainsKey(sprite))
+                OriginalSpriteColors[sprite] = sprite.color;
             sprite.color = dark ? new Color(0.35f, 0.35f, 0.35f, 1f)
                 : new Color(UnityEngine.Random.value, UnityEngine.Random.value, UnityEngine.Random.value, 1f);
+            SpriteRestoreAt[sprite] = Time.time + 8f;
+        }
         return true;
     }
 
@@ -123,16 +160,23 @@ internal static class AndroidRoleEffectAdapter
             .FirstOrDefault(m => m.Name == "SetOutline" && m.GetParameters().Length == 2);
         if (method == null) return false;
         method.Invoke(cosmetics, new object?[] { true, null });
+        OutlineRestoreAt[cosmetics] = Time.time + 8f;
         return true;
     }
 
-    private static bool GrantBonusVote(object player)
+    private static bool GrantBonusVote(object player, int count)
     {
         var voteData = InvokeNoArg(player, "GetVoteData");
         if (voteData == null) return false;
-        var method = voteData.GetType().GetMethod("IncreaseRemainingVotes", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        var method = voteData.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .FirstOrDefault(m => m.Name == "IncreaseRemainingVotes" && m.GetParameters().Length == 1);
         if (method == null) return false;
-        method.Invoke(voteData, new object[] { 1 });
+        var parameterType = method.GetParameters()[0].ParameterType;
+        object amount = parameterType == typeof(byte) ? (byte)Math.Clamp(count, 1, 3)
+            : parameterType == typeof(short) ? (short)Math.Clamp(count, 1, 3)
+            : parameterType == typeof(uint) ? (uint)Math.Clamp(count, 1, 3)
+            : Math.Clamp(count, 1, 3);
+        method.Invoke(voteData, new[] { amount });
         return true;
     }
 
