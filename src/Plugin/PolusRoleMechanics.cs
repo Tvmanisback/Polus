@@ -33,6 +33,14 @@ public static class PolusRoleMechanics
     private static State Get(byte id) => States.GetOrAdd(id, _ => new State());
     public static int GetProgress(byte id) => States.TryGetValue(id, out var s) ? s.Progress : 0;
     public static int GetTasks(byte id) => States.TryGetValue(id, out var s) ? s.Tasks : 0;
+
+    public static void InitializePlayer(PlayerControl player)
+    {
+        if (player == null) return;
+        var s = Get(player.PlayerId);
+        s.LastPosition = player.transform.position;
+        s.HasLastPosition = true;
+    }
     private static string Sector(Vector3 p) => $"{Mathf.FloorToInt(p.x / 4f)}:{Mathf.FloorToInt(p.y / 4f)}";
 
     public static void RecordTask(PlayerControl player, string type)
