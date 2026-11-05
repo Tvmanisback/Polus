@@ -42,3 +42,6 @@ jobs:
           bash -n ios/server/make-region.sh
           bash -n ios/server/test-codespace.sh
           python3 -m json.tool ios/server/config.template.json >/dev/null
+
+      - name: Start server and verify plugin load
+        run: bash ios/server/test-codespace.sh
