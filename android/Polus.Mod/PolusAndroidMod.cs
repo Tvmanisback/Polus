@@ -81,7 +81,7 @@ public sealed class PolusAndroidMod : MelonMod
                 && AndroidRoleMechanics.HasMeetingAbility(meetingRole.Id, meetingPlayerId.Value))
             {
                 if (GUI.Button(new Rect(12, Screen.height - 92, 178, 48), "MEETING ABILITY"))
-                    _status = AndroidRoleMechanics.UseMeetingAbility(meetingRole.Id, meetingPlayerId.Value);
+                    _status = PolusHostRoles.TryUseMeetingAbility(meetingRole.Id, meetingPlayerId.Value, IsHost(), out var meetingResult) ? meetingResult : meetingResult;
             }
         }
     }
@@ -282,6 +282,7 @@ public sealed class PolusAndroidMod : MelonMod
     {
         _meetingOpen = true;
         _meetingNumber++;
+        PolusHostRoles.BeginMeeting();
         var localId = GetLocalPlayerId();
         var local = GetLocalPlayer();
         if (localId.HasValue && local != null && AssignedRoles.TryGetValue(localId.Value, out var role))
@@ -313,6 +314,7 @@ public sealed class PolusAndroidMod : MelonMod
     private static void MeetingEnding()
     {
         _meetingOpen = false;
+        PolusHostRoles.EndMeeting();
     }
 
     private static void TaskCompletedPostfix(object __instance, object[] __args)
@@ -325,7 +327,6 @@ public sealed class PolusAndroidMod : MelonMod
             var transform = GetMember(__instance, "transform");
             var position = transform == null ? Vector3.zero : (Vector3)(GetMember(transform, "position") ?? Vector3.zero);
             AndroidRoleMechanics.RecordTask(playerId, position, taskType);
-            MiraApi.Instance.Events.Publish(new MiraTaskCompletedEvent(playerId, taskType));
         }
         catch (Exception ex) { MelonLogger.Warning("Task progress hook failed: " + ex.Message); }
     }
