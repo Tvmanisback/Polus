@@ -261,7 +261,7 @@ public sealed class MainActivity : Activity, IPatchLogger
 }
 
 
-public sealed class PolusAndroidBridge
+public sealed class PolusAndroidBridge : Java.Lang.Object
 {
     private readonly MainActivity _activity;
     public PolusAndroidBridge(MainActivity activity) => _activity = activity;
