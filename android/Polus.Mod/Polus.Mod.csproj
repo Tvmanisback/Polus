@@ -12,6 +12,7 @@
     <ProjectReference Include="../../src/RoleCore/RoleCore.csproj" />
     <PackageReference Include="LavaGang.MelonLoader" Version="0.6.6" PrivateAssets="all" ExcludeAssets="runtime" />
     <PackageReference Include="BepInEx.Unity.IL2CPP" Version="6.0.0-be.788" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="NextBepLoader.BepInEx.IL2CPP.MSBuild" Version="2.1.0-dev-6" PrivateAssets="all" ExcludeAssets="runtime" />
     <PackageReference Include="AmongUs.GameLibs.Steam" Version="2026.9.29" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
