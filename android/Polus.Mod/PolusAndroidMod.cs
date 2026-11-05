@@ -30,6 +30,7 @@ public sealed class PolusAndroidMod : MelonMod
     private static Rect _panel = new(18, 70, 380, 520);
     private static int _rolePage;
     private static readonly HashSet<byte> NeutralObjectiveNotices = new();
+    private static bool NeutralVictoryTriggered;
     private static string _modeFile = "";
 
     public override void OnInitializeMelon()
@@ -108,10 +109,41 @@ public sealed class PolusAndroidMod : MelonMod
 
         foreach (var completion in SharedEffects.GetCompletedNeutralObjectives(requirements))
         {
-            if (!NeutralObjectiveNotices.Add(completion.PlayerId)) continue;
+            if (!NeutralObjectiveNotices.Add(completion.PlayerId) || NeutralVictoryTriggered) continue;
             var roleName = _catalog.FirstOrDefault(r => r.Id.Equals(completion.RoleId, StringComparison.OrdinalIgnoreCase))?.Name
                 ?? completion.RoleId;
-            _status = roleName + " completed its neutral objective (" + completion.Progress + "/" + completion.Required + ").";
+            if (TryTriggerCrewVictory())
+            {
+                NeutralVictoryTriggered = true;
+                _status = roleName + " won! Showing the standard Crewmate victory screen.";
+            }
+            else
+            {
+                _status = roleName + " completed the objective, but the standard Crewmate end-game call was unavailable.";
+            }
+        }
+    }
+
+    private static bool TryTriggerCrewVictory()
+    {
+        try
+        {
+            var shipType = AccessTools.TypeByName("ShipStatus");
+            var ship = shipType == null ? null : GetStaticMember(shipType, "Instance");
+            if (shipType == null || ship == null) return false;
+            var method = shipType.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                .FirstOrDefault(m => m.Name == "RpcEndGame" && m.GetParameters().Length == 2
+                    && m.GetParameters()[0].ParameterType.IsEnum
+                    && m.GetParameters()[1].ParameterType == typeof(bool));
+            if (method == null) return false;
+            var reason = Enum.Parse(method.GetParameters()[0].ParameterType, "HumansByVote", true);
+            method.Invoke(ship, new object[] { reason, false });
+            return true;
+        }
+        catch (Exception ex)
+        {
+            MelonLogger.Warning("Could not trigger standard Crewmate victory: " + ex.Message);
+            return false;
         }
     }
 
@@ -278,6 +310,7 @@ public sealed class PolusAndroidMod : MelonMod
             SharedRoleEngine.EndMatch();
             SharedEffects.EndMatch();
             NeutralObjectiveNotices.Clear();
+            NeutralVictoryTriggered = false;
             _meetingNumber = 0;
             var assignments = _hostRuntime.StartMatch(players.Select(p => new PlayerSlot(p)).ToArray(),
                 configuredCatalog, settings, impostorCount: 1, neutralCount: neutralCount);
