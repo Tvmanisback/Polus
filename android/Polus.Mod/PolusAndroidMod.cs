@@ -13,8 +13,6 @@ namespace Polus.AndroidMod;
 
 public sealed class PolusAndroidMod : MelonMod
 {
-    private const byte RoleSyncRpc = 250;
-    private const byte RoleActionRpc = 249;
     private static readonly Dictionary<byte, RoleDefinition> AssignedRoles = new();
     private static readonly Dictionary<byte, int> AbilityUses = new();
     private static readonly object StateLock = new();
@@ -146,9 +144,8 @@ public sealed class PolusAndroidMod : MelonMod
         _harmony = new HarmonyLib.Harmony("org.polus.android");
         PatchByName("MeetingHud", "Start", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(MeetingStarted)));
         PatchByName("MeetingHud", "OnDestroy", prefix: AccessTools.Method(typeof(PolusAndroidMod), nameof(MeetingEnding)));
-        PatchByName("PlayerControl", "HandleRpc", prefix: AccessTools.Method(typeof(PolusAndroidMod), nameof(HandleRpcPrefix)));
         PatchByName("PlayerControl", "CompleteTask", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(TaskCompletedPostfix)));
-        _status = "Modded mode active. Host-authoritative role sync is enabled for Polus clients.";
+        _status = "Host-only mode active. Other players remain on unmodified clients.";
     }
 
     private void DeactivateModdedHooks()
@@ -202,21 +199,14 @@ public sealed class PolusAndroidMod : MelonMod
                 AssignedRoles.Clear();
                 foreach (var item in assignments) AssignedRoles[item.PlayerId] = item.Role;
             }
-            foreach (var item in assignments)
-                SendRpc(RoleSyncRpc, $"ROLE|{item.PlayerId}|{item.Role.Id}");
-            _status = $"Assigned {assignments.Count} custom roles. All players need Polus installed.";
+            _status = $"Assigned {assignments.Count} host-tracked roles. Only the host runs Polus.";
         }
         catch (Exception ex) { _status = "Role assignment failed: " + ex.Message; }
     }
 
     private void RequestAbility(byte playerId, RoleDefinition role)
     {
-        if (!IsHost())
-        {
-            SendRpc(RoleActionRpc, $"ACTION_REQ|{playerId}|{role.Id}");
-            _status = $"Sent {role.Name} ability request to the host.";
-            return;
-        }
+        if (!IsHost()) { _status = "Polus role actions are host-only."; return; }
         AcceptAbilityRequest(playerId, role.Id);
     }
 
@@ -237,7 +227,6 @@ public sealed class PolusAndroidMod : MelonMod
         var uses = AbilityUses.GetValueOrDefault(playerId) + 1;
         AbilityUses[playerId] = uses;
         _status = assigned.Name + ": " + mechanicResult;
-        SendRpc(RoleActionRpc, $"ACTION_OK|{playerId}|{assigned.Id}|{uses}");
     }
     private void RequestMeeting()
     {
@@ -253,56 +242,6 @@ public sealed class PolusAndroidMod : MelonMod
             _status = "Emergency meeting requested.";
         }
         catch (Exception ex) { _status = "Meeting request failed: " + ex.Message; }
-    }
-
-    private static bool HandleRpcPrefix(object __instance, byte callId, object reader)
-    {
-        if (!_moddedMode || (callId != RoleSyncRpc && callId != RoleActionRpc)) return true;
-        try
-        {
-            var read = reader.GetType().GetMethod("ReadString", Type.EmptyTypes);
-            var payload = read?.Invoke(reader, null) as string;
-            if (string.IsNullOrWhiteSpace(payload)) return false;
-            var parts = payload.Split('|');
-            if (parts.Length < 3) return false;
-            if (parts[0] == "ROLE" && byte.TryParse(parts[1], out var playerId))
-            {
-                if (!IsHostSender(reader)) return false;
-                var role = _catalog.FirstOrDefault(r => r.Id.Equals(parts[2], StringComparison.OrdinalIgnoreCase));
-                if (role == null || !AndroidMiraApi.IsRegistered(role.Id)) return false;
-                lock (StateLock) AssignedRoles[playerId] = role;
-                _status = "Role received: " + role.Name + ".";
-            }
-            else if (parts[0] == "ACTION_REQ" && byte.TryParse(parts[1], out var actorId))
-            {
-                var actor = GetPlayerById(actorId);
-                if (!IsHost() || actor == null || !IsPlayerRpcSender(actor, reader)) return false;
-                AcceptAbilityRequest(actorId, parts[2]);
-            }
-            else if (parts[0] == "ACTION_OK")
-            {
-                if (!IsHostSender(reader)) return false;
-                _status = "Player " + parts[1] + " used a Polus role ability.";
-            }
-        }
-        catch (Exception ex) { MelonLogger.Warning("Polus RPC rejected: " + ex.Message); }
-        return false;
-    }
-
-    private static bool IsHostSender(object reader)
-    {
-        var clientType = AccessTools.TypeByName("AmongUsClient");
-        var client = clientType == null ? null : GetStaticMember(clientType, "Instance");
-        var hostId = client == null ? null : GetMember(client, "HostId");
-        var senderId = GetMember(reader, "SenderId");
-        return hostId != null && senderId != null && Convert.ToInt32(hostId) == Convert.ToInt32(senderId);
-    }
-
-    private static bool IsPlayerRpcSender(object player, object reader)
-    {
-        var ownerId = GetMember(player, "OwnerId");
-        var senderId = GetMember(reader, "SenderId");
-        return ownerId != null && senderId != null && Convert.ToInt32(ownerId) == Convert.ToInt32(senderId);
     }
 
     private static void MeetingStarted()
@@ -412,28 +351,4 @@ public sealed class PolusAndroidMod : MelonMod
         return target.GetType().GetProperty(name, flags)?.GetValue(target) ?? target.GetType().GetField(name, flags)?.GetValue(target);
     }
 
-    private static void SendRpc(byte rpcId, string payload)
-    {
-        try
-        {
-            var clientType = AccessTools.TypeByName("AmongUsClient");
-            var client = clientType == null ? null : GetStaticMember(clientType, "Instance");
-            var local = GetLocalPlayer();
-            if (client == null || local == null) return;
-            var netId = GetMember(local, "NetId");
-            var start = client.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .FirstOrDefault(m => m.Name == "StartRpcImmediately" && m.GetParameters().Length == 4);
-            if (start == null) { _status = "This game build does not expose the expected RPC writer."; return; }
-            var parameters = start.GetParameters();
-            var sendEnum = parameters[2].ParameterType;
-            var reliable = Enum.Parse(sendEnum, "Reliable", true);
-            var writer = start.Invoke(client, new object?[] { netId, rpcId, reliable, -1 });
-            if (writer == null) return;
-            writer.GetType().GetMethod("Write", new[] { typeof(string) })?.Invoke(writer, new object[] { payload });
-            var finish = client.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .FirstOrDefault(m => m.Name == "FinishRpcImmediately" && m.GetParameters().Length == 1);
-            finish?.Invoke(client, new[] { writer });
-        }
-        catch (Exception ex) { _status = "Network send failed: " + ex.Message; }
-    }
 }
