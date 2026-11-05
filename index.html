@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101a2a">
+  <meta name="description" content="Polus — an independent Among Us modding project for PC, with Android development updates.">
+  <title>Polus — Among Us, reimagined</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <style>
+    :root{color-scheme:dark;--bg:#0b1220;--panel:#121e30;--panel2:#17263a;--line:#2a3b52;--muted:#9aabc0;--text:#f4f7fb;--cyan:#54d6e8;--blue:#628bff;--purple:#9b83ff}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse at 50% -18%,#1e3d5a 0,transparent 52%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    a{color:inherit;text-decoration:none}.wrap{width:min(1120px,calc(100% - 40px));margin:auto}
+    header{height:76px;border-bottom:1px solid #ffffff12;background:#0b1220c9;backdrop-filter:blur(14px);position:sticky;top:0;z-index:5}
+    .nav{height:100%;display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:.16em}.brand img{width:39px;height:39px;object-fit:contain;border-radius:12px}.navlinks{display:flex;gap:28px;color:#b8c6d8;font-size:14px}.navlinks a:hover{color:var(--cyan)}
+    .hero{padding:94px 0 76px;text-align:center}.eyebrow{display:inline-flex;gap:9px;align-items:center;border:1px solid #54d6e84a;background:#54d6e812;border-radius:999px;padding:8px 14px;color:#9cebf4;font-size:12px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 16px var(--cyan)}
+    h1{font-size:clamp(48px,8vw,88px);line-height:.98;letter-spacing:-.065em;margin:25px 0 18px}.gradient{background:linear-gradient(100deg,#fff 8%,#a6eaf2 48%,#9a8cff 92%);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero p{max-width:650px;margin:0 auto;color:var(--muted);font-size:18px;line-height:1.7}.actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:30px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:13px 20px;border-radius:12px;font-weight:800;font-size:14px;border:1px solid var(--line);background:#17263a}.btn.primary{background:linear-gradient(110deg,#48cde0,#6388ff);border:0;color:#07121d;box-shadow:0 12px 34px #4abed52b}.btn:hover{transform:translateY(-2px);transition:.18s}
+    .preview{margin:0 auto;max-width:890px;border:1px solid #ffffff20;border-radius:20px;background:linear-gradient(145deg,#182a40,#0e1928);padding:12px;box-shadow:0 35px 90px #0007}.preview-inner{min-height:230px;border-radius:13px;background:radial-gradient(circle at 50% 0,#254765,#111e30 68%);display:grid;place-items:center;overflow:hidden;position:relative}.preview-inner:before,.preview-inner:after{content:"";position:absolute;width:230px;height:230px;border:1px solid #8be7f022;border-radius:50%}.preview-inner:after{width:340px;height:340px}.crewmate{position:relative;width:78px;height:100px;border-radius:34px 34px 24px 24px;background:linear-gradient(135deg,#5ce0ed,#2386b9);box-shadow:inset -12px -8px 0 #135c83,0 24px 50px #36c9e866;z-index:1}.crewmate:before{content:"";position:absolute;right:-20px;top:18px;width:53px;height:30px;border-radius:22px;background:linear-gradient(135deg,#d9f8ff,#5b9bb9);border:5px solid #1c668b}.crewmate:after{content:"";position:absolute;bottom:-4px;left:7px;width:64px;height:18px;border-radius:8px;background:#247ba3;box-shadow:0 0 0 5px #123e5b}
+    section{padding:66px 0}.section-head{text-align:center;margin-bottom:30px}.kicker{color:var(--cyan);font-size:11px;font-weight:900;letter-spacing:.18em;text-transform:uppercase}.section-head h2{font-size:clamp(30px,4vw,44px);letter-spacing:-.04em;margin:10px 0}.section-head p{color:var(--muted);margin:0}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:linear-gradient(150deg,#17263a,#101a29);border:1px solid var(--line);border-radius:17px;padding:24px;min-height:190px}.icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#54d6e817;color:var(--cyan);font-size:20px;margin-bottom:18px}.card h3{margin:0 0 8px;font-size:18px}.card p{margin:0;color:var(--muted);font-size:14px;line-height:1.65}
+    .downloads{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.platform{border:1px solid var(--line);background:var(--panel);border-radius:17px;padding:24px;display:flex;flex-direction:column;min-height:224px}.platform .top{display:flex;align-items:center;justify-content:space-between}.platform h3{font-size:20px;margin:14px 0 6px}.platform p{font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 22px}.status{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:900;color:#8ee7c1;background:#8ee7c11a;border:1px solid #8ee7c133;padding:6px 9px;border-radius:99px}.status.soon{color:#f6d18b;background:#f6d18b14;border-color:#f6d18b33}.status.no{color:#ff9d9d;background:#ff9d9d14;border-color:#ff9d9d33}.platform .btn{margin-top:auto;width:100%}.platform .btn.disabled{opacity:.62;cursor:default;background:#1b2a3c;color:#b3c0d0}
+    .notice{margin-top:18px;padding:16px 18px;border:1px solid #9b83ff44;background:#9b83ff0d;border-radius:13px;color:#c7c2e9;font-size:13px;line-height:1.65}
+    footer{border-top:1px solid #ffffff14;padding:28px 0;color:var(--muted);font-size:13px}.foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    @media(max-width:760px){.navlinks{gap:14px;font-size:12px}.grid,.downloads{grid-template-columns:1fr}.hero{padding:70px 0 54px}.preview-inner{min-height:180px}.wrap{width:min(100% - 28px,1120px)}}
+    @media(max-width:430px){.navlinks a:nth-child(2){display:none}.brand{letter-spacing:.1em}}
+  </style>
+</head>
+<body>
+<header><div class="wrap nav">
+  <a class="brand" href="#"><img src="icon.png" alt="Polus icon"><span>POLUS</span></a>
+  <nav class="navlinks" aria-label="Main navigation"><a href="#features">Features</a><a href="#downloads">Downloads</a><a href="https://github.com/Tvmanisback/Polus">GitHub ↗</a></nav>
+</div></header>
+<main>
+  <div class="wrap hero">
+    <span class="eyebrow"><span class="dot"></span> Community mod project</span>
+    <h1><span class="gradient">Among Us,</span><br>with a new twist.</h1>
+    <p>Meet Polus: an independent custom-role and modding project built around private-lobby gameplay, host tools, and a growing Android experiment.</p>
+    <div class="actions"><a class="btn primary" href="#downloads">Explore downloads <span aria-hidden="true">→</span></a><a class="btn" href="https://github.com/Tvmanisback/Polus">View source ↗</a></div>
+    <div class="preview" style="margin-top:48px"><div class="preview-inner"><div class="crewmate" aria-label="Abstract crewmate illustration"></div></div></div>
+  </div>
+  <section id="features"><div class="wrap">
+    <div class="section-head"><div class="kicker">Inside Polus</div><h2>More ways to play.</h2><p>Designed for custom games and community experimentation.</p></div>
+    <div class="grid">
+      <article class="card"><div class="icon">✦</div><h3>Custom roles</h3><p>Original role concepts, individual abilities, and role-specific progress systems for compatible modded clients.</p></article>
+      <article class="card"><div class="icon">◎</div><h3>Host tools</h3><p>Host-authoritative controls intended for private lobbies. Vanilla players do not receive custom role UI or effects.</p></article>
+      <article class="card"><div class="icon">⌘</div><h3>Android project</h3><p>An Android loader and patcher experiment with a separate in-game mode selector and compatibility work in progress.</p></article>
+    </div>
+  </div></section>
+  <section id="downloads"><div class="wrap">
+    <div class="section-head"><div class="kicker">Get Polus</div><h2>Choose your platform.</h2><p>Download availability is shown honestly for each platform.</p></div>
+    <div class="downloads">
+      <article class="platform"><div class="top"><span class="icon" style="margin:0">▣</span><span class="status">Available</span></div><h3>PC · Windows</h3><p>Get the Windows patcher from the latest GitHub release. Check the release notes for the supported Among Us build.</p><a class="btn primary" href="https://github.com/Tvmanisback/Polus/releases/latest">Download for PC ↗</a></article>
+      <article class="platform"><div class="top"><span class="icon" style="margin:0">▤</span><span class="status soon">Coming soon</span></div><h3>Android</h3><p>The Android loader and patcher are still being developed. No public Android download is available yet.</p><span class="btn disabled" aria-disabled="true">Coming soon</span></article>
+      <article class="platform"><div class="top"><span class="icon" style="margin:0">▧</span><span class="status no">Impossible · for now</span></div><h3>iOS</h3><p>There is no supported Polus iOS build. Modifying the Among Us IPA has not been solved for this project.</p><span class="btn disabled" aria-disabled="true">Not available</span></article>
+    </div>
+    <div class="notice"><strong>Compatibility note:</strong> Polus is an independent community project, not affiliated with Innersloth. Custom role functionality requires a compatible modded environment; it cannot make unmodified clients run the Polus plugin.</div>
+  </div></section>
+</main>
+<footer><div class="wrap foot"><span>© <span id="year"></span> Polus Community Project</span><span>Not affiliated with or endorsed by Innersloth.</span></div></footer>
+<script>document.getElementById("year").textContent=new Date().getFullYear();</script>
+</body></html>
