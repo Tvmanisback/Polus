@@ -13,12 +13,15 @@ public static class PolusRoleMechanics
         public int Tasks, Progress, Snapshot, Streak, Chain;
         public float LastTaskAt;
         public string LastType = "";
+        public Vector3 LastPosition;
+        public bool HasLastPosition;
         public readonly HashSet<string> Types = new();
         public readonly HashSet<string> Sectors = new();
         public readonly List<string> Ledger = new();
     }
 
     private static readonly ConcurrentDictionary<byte, State> States = new();
+    private static PlayerControl? LastTaggedPlayer;
     public static void Reset() => States.Clear();
     private static State Get(byte id) => States.GetOrAdd(id, _ => new State());
     public static int GetProgress(byte id) => States.TryGetValue(id, out var s) ? s.Progress : 0;
@@ -31,6 +34,8 @@ public static class PolusRoleMechanics
         var s = Get(player.PlayerId);
         var gap = Time.time - s.LastTaskAt;
         s.Tasks++;
+        s.LastPosition = player.transform.position;
+        s.HasLastPosition = true;
         s.Types.Add(type);
         s.Sectors.Add(Sector(player.transform.position));
         s.Ledger.Add(type);
@@ -135,11 +140,13 @@ public static class PolusRoleMechanics
                 break;
             case CounterfeiterRole:
                 s.Progress++;
-                message = $"Forgery token prepared. Tokens: {s.Progress}.";
+                s.Ledger.Add("Forged task-board entry");
+                message = $"Decoy board entry planted in your private ledger. Entries: {s.Progress}.";
                 break;
             case EchoistRole:
                 s.Progress++;
-                message = $"Echo cue sent. Cues emitted: {s.Progress}.";
+                s.Ledger.Add($"Echo cue #{s.Progress}");
+                message = $"Echo cue emitted and logged. Cues: {s.Progress}.";
                 break;
             case BlackoutArtistRole:
                 s.Progress++;
@@ -159,8 +166,9 @@ public static class PolusRoleMechanics
                 message = decoy == null ? "No nearby decoy destination found." : "Decoy reposition completed.";
                 break;
             case LedgeristRole:
+                var delayedTasks = TakeSnapshot(player.PlayerId);
                 s.Progress++;
-                message = $"Task ledger checkpoint delayed. Windows created: {s.Progress}.";
+                message = $"Ledger refresh checkpoint stored. {delayedTasks} task entries since the last checkpoint; windows: {s.Progress}.";
                 break;
             case SwitchboarderRole:
                 var other = player.GetClosestPlayer(true, 2.5f);
@@ -180,15 +188,21 @@ public static class PolusRoleMechanics
                 break;
             case MisdirectorRole:
                 s.Progress++;
-                message = $"Misleading room statistic published. Summaries: {s.Progress}.";
+                if (s.HasLastPosition) player.NetTransform.RpcSnapTo(s.LastPosition);
+                message = s.HasLastPosition ? "Misdirection shift returned you to your last recorded task location." : "No recorded location is available yet.";
                 break;
             case ScramblerRole:
                 s.Progress++;
-                message = $"Status sequence scrambled. Scrambles: {s.Progress}.";
+                s.Ledger.Reverse();
+                message = $"Your event ledger was scrambled. Scrambles: {s.Progress}; entries reordered: {s.Ledger.Count}.";
                 break;
             case ParasiticSignalRole:
                 var tagged = player.GetClosestPlayer(true, 2.5f);
-                if (tagged != null) tagged.cosmetics.SetOutline(true, new Il2CppSystem.Nullable<Color>(Color.magenta));
+                if (tagged != null)
+                {
+                    tagged.cosmetics.SetOutline(true, new Il2CppSystem.Nullable<Color>(Color.magenta));
+                    LastTaggedPlayer = tagged;
+                }
                 s.Progress++;
                 message = tagged == null ? "Move closer to a player to attach a signal." : $"Signal attached to {tagged.Data.PlayerName}.";
                 break;
@@ -211,6 +225,13 @@ public static class PolusRoleMechanics
 
         Helpers.CreateAndShowNotification(message, custom.RoleColor, new Vector3(0f, 2f, -50f));
         return true;
+    }
+
+    public static void EndTimedEffects()
+    {
+        if (LastTaggedPlayer != null)
+            LastTaggedPlayer.cosmetics.SetOutline(false, new Il2CppSystem.Nullable<Color>(Color.magenta));
+        LastTaggedPlayer = null;
     }
 
     public static void RecordMeeting(PlayerControl player)
