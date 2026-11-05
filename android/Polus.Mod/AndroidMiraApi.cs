@@ -24,6 +24,9 @@ internal static class AndroidMiraApi
         MeetingActions.Clear();
         var api = MiraApi.Instance;
         api.Roles.Clear();
+        api.Keybinds.Register("polus.menu", "F8");
+        api.Colors.Register("polus.crewmate", 72, 190, 224);
+        api.Colors.Register("polus.impostor", 230, 76, 92);
 
         foreach (var role in definitions)
         {
