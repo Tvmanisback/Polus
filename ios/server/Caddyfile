@@ -1,3 +1,9 @@
+{
+    servers {
+        protocols h1 h2
+    }
+}
+
 polus.yapyur.org:25906 {
     tls {
         dns ionos {
