@@ -8,7 +8,7 @@
       "Servers": [
         {
           "Name": "http-1",
-          "Ip": "http://polus.yapyur.org",
+          "Ip": "https://polus.yapyur.org",
           "Port": 25906,
           "UseDtls": false
         }
