@@ -1,12 +1,12 @@
 using HarmonyLib;
+using InnerNet;
 using Polus.Plugin.Buttons;
 using Polus.Plugin.Roles;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Polus.Plugin.Patches;
 
-// Creates a second KillButton instance for the role ability. The game's original
-// KillButton remains in place and continues to handle normal impostor kills.
 [HarmonyPatch(typeof(HudManager), nameof(HudManager.Update))]
 internal static class PolusVanillaRoleButtonUpdatePatch
 {
@@ -37,7 +37,7 @@ internal static class PolusVanillaRoleButtonUpdatePatch
         var inGame = MeetingHud.Instance == null &&
                      !player.Data.IsDead &&
                      AmongUsClient.Instance != null &&
-                     AmongUsClient.Instance.GameState == InnerNetClient.GameStates.Started;
+                     AmongUsClient.Instance.GameState == GameStates.Started;
 
         if (!inGame)
         {
@@ -59,8 +59,6 @@ internal static class PolusVanillaRoleButtonClickPatch
 {
     private static bool Prefix(KillButton __instance)
     {
-        // Only consume clicks on our duplicated ability button. The original
-        // KillButton always falls through to the game's normal kill handling.
         if (__instance == null ||
             __instance != PolusVanillaRoleButtonUpdatePatch.AbilityButton)
             return true;
@@ -70,7 +68,7 @@ internal static class PolusVanillaRoleButtonClickPatch
             MeetingHud.Instance != null ||
             player.Data.IsDead ||
             AmongUsClient.Instance == null ||
-            AmongUsClient.Instance.GameState != InnerNetClient.GameStates.Started)
+            AmongUsClient.Instance.GameState != GameStates.Started)
             return false;
 
         if (PolusVanillaRoleButtonUpdatePatch.CanActivate &&
