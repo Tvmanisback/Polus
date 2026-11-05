@@ -33,6 +33,7 @@ public sealed class PolusAndroidMod : MelonMod
     {
         _modeFile = Path.Combine(MelonEnvironment.UserDataDirectory, "Polus.mode");
         _catalog = LoadCatalog();
+        AndroidMiraApi.RegisterRoles(_catalog);
         _choiceMade = false;
         _moddedMode = false;
         LoggerInstance.Msg("Polus Android loaded. Choose Vanilla or Polus Modded on every launch.");
@@ -63,7 +64,8 @@ public sealed class PolusAndroidMod : MelonMod
         var localId = GetLocalPlayerId();
         if (localId.HasValue && AssignedRoles.TryGetValue(localId.Value, out var role))
         {
-            var label = role.Name + "  •  ABILITY";
+            var actionButton = AndroidMiraApi.GetActionButton(role.Id);
+            var label = actionButton?.Label ?? (role.Name + "  •  ABILITY");
             if (GUI.Button(new Rect(Screen.width - 190, Screen.height - 92, 178, 68), label))
                 RequestAbility(localId.Value, role);
         }
@@ -73,6 +75,7 @@ public sealed class PolusAndroidMod : MelonMod
             GUI.Label(new Rect(12, Screen.height - 36, 320, 28), "POLUS MEETING");
             var meetingPlayerId = GetLocalPlayerId();
             if (meetingPlayerId.HasValue && AssignedRoles.TryGetValue(meetingPlayerId.Value, out var meetingRole)
+                && AndroidMiraApi.GetMeetingButton(meetingRole.Id) != null
                 && AndroidRoleMechanics.HasMeetingAbility(meetingRole.Id, meetingPlayerId.Value))
             {
                 if (GUI.Button(new Rect(12, Screen.height - 92, 178, 48), "MEETING ABILITY"))
@@ -154,6 +157,7 @@ public sealed class PolusAndroidMod : MelonMod
         _harmony = null;
         _hostRuntime = null;
         lock (StateLock) { AssignedRoles.Clear(); AbilityUses.Clear(); }
+        AndroidRoleMechanics.Reset();
     }
 
     private void PatchByName(string typeName, string methodName, MethodInfo? prefix = null, MethodInfo? postfix = null)
@@ -251,38 +255,54 @@ public sealed class PolusAndroidMod : MelonMod
         catch (Exception ex) { _status = "Meeting request failed: " + ex.Message; }
     }
 
-    private static void HandleRpcPrefix(object __instance, byte callId, object reader)
+    private static bool HandleRpcPrefix(object __instance, byte callId, object reader)
     {
-        if (!_moddedMode) return;
+        if (!_moddedMode || (callId != RoleSyncRpc && callId != RoleActionRpc)) return true;
         try
         {
-            if (callId != RoleSyncRpc && callId != RoleActionRpc) return;
             var read = reader.GetType().GetMethod("ReadString", Type.EmptyTypes);
             var payload = read?.Invoke(reader, null) as string;
-            if (string.IsNullOrWhiteSpace(payload)) return;
+            if (string.IsNullOrWhiteSpace(payload)) return false;
             var parts = payload.Split('|');
-            if (parts.Length < 3) return;
-
+            if (parts.Length < 3) return false;
             if (parts[0] == "ROLE" && byte.TryParse(parts[1], out var playerId))
             {
+                if (!IsHostSender(reader)) return false;
                 var role = _catalog.FirstOrDefault(r => r.Id.Equals(parts[2], StringComparison.OrdinalIgnoreCase));
-                if (role == null) return;
+                if (role == null || !AndroidMiraApi.IsRegistered(role.Id)) return false;
                 lock (StateLock) AssignedRoles[playerId] = role;
-                _status = $"Role received: {role.Name}.";
+                _status = "Role received: " + role.Name + ".";
             }
-            else if (parts[0] == "ACTION_REQ" && parts.Length >= 3 && IsHost()
-                && byte.TryParse(parts[1], out var actorId)
-                && TryGetByte(__instance, "PlayerId", out var rpcPlayerId)
-                && rpcPlayerId == actorId)
+            else if (parts[0] == "ACTION_REQ" && byte.TryParse(parts[1], out var actorId))
             {
+                var actor = GetPlayerById(actorId);
+                if (!IsHost() || actor == null || !IsPlayerRpcSender(actor, reader)) return false;
                 AcceptAbilityRequest(actorId, parts[2]);
             }
             else if (parts[0] == "ACTION_OK")
             {
-                _status = $"Player {parts[1]} used a Polus role ability.";
+                if (!IsHostSender(reader)) return false;
+                _status = "Player " + parts[1] + " used a Polus role ability.";
             }
         }
-        catch { /* Unknown or malformed mod RPCs must never interrupt the game RPC handler. */ }
+        catch (Exception ex) { LoggerInstance.Warning("Polus RPC rejected: " + ex.Message); }
+        return false;
+    }
+
+    private static bool IsHostSender(object reader)
+    {
+        var clientType = AccessTools.TypeByName("AmongUsClient");
+        var client = clientType == null ? null : GetStaticMember(clientType, "Instance");
+        var hostId = client == null ? null : GetMember(client, "HostId");
+        var senderId = GetMember(reader, "SenderId");
+        return hostId != null && senderId != null && Convert.ToInt32(hostId) == Convert.ToInt32(senderId);
+    }
+
+    private static bool IsPlayerRpcSender(object player, object reader)
+    {
+        var ownerId = GetMember(player, "OwnerId");
+        var senderId = GetMember(reader, "SenderId");
+        return ownerId != null && senderId != null && Convert.ToInt32(ownerId) == Convert.ToInt32(senderId);
     }
 
     private static void MeetingStarted()
