@@ -74,7 +74,7 @@ public static class PolusRoleMechanics
             case PilgrimRole: s.Progress = s.LastType != type ? s.Progress + 1 : 0; break;
             case CuratorRole: s.Progress = s.TypeSectorPairs.Count; break;
             case WayfinderRole: s.Progress = s.RouteStops; break;
-            case NomadRole: s.Progress = s.Sectors.Count; break;
+            case NomadRole: s.Progress = Math.Max(0, s.RouteStops - s.Sectors.Count); break;
             case MetronomeRole: s.Progress = gap >= 3f && gap <= 15f ? s.Progress + 1 : 1; break;
             case CartoucheRole: s.Progress = s.TaskPairs.Count; break;
             case WeathervaneRole: s.Progress = s.Chain / 2; break;
