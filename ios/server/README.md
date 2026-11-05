@@ -18,15 +18,11 @@ If automatic LAN-IP detection is wrong, set POLUS_UDP_HOST to the computer's Wi-
 
     POLUS_UDP_HOST=192.168.1.25 bash ios/server/run-local.sh
 
-In a second terminal, expose only the HTTP matchmaking endpoint:
+The server binds both its HTTP matchmaking listener and UDP game listener to all network interfaces on port 22023. Allow both TCP 22023 (matchmaking) and UDP 22023 (game traffic) through the computer firewall.
 
-    bash ios/server/run-https-tunnel.sh
+On the iPhone/iPad, open the main Polus website, enter the server computer's LAN IPv4 address, and tap **Open Among Us**. The website uses the game's `amongus://init` deep link to add the custom region. The deep link requires an IP address rather than a DNS hostname and sets `usedtls=false`.
 
-Copy the temporary HTTPS URL and generate the exact region filename:
-
-    bash ios/server/make-region.sh https://YOUR-NAME.trycloudflare.com
-
-This writes ios/config/region.json. Import that file into Among Us using the import method available on the iOS device. The HTTPS tunnel does not carry UDP gameplay packets; the phone must be able to reach the computer's UDP port 22023 on the same Wi-Fi.
+The optional `run-https-tunnel.sh` and `make-region.sh` scripts remain for separate HTTPS/region-file experiments; a TCP-only tunnel does not carry UDP gameplay traffic and is not a substitute for forwarding the UDP game port.
 
 ## Codespaces smoke test
 
