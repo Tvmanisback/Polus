@@ -72,7 +72,7 @@ public sealed class RoleMatchRuntime
             var selected = new List<(PlayerSlot Player, RoleDefinition Role)>();
             AddWeightedTeam(players, impostorCount, impostors, selected, random);
             AddWeightedTeam(players, neutralCount, neutrals, selected, random);
-            var crewSlots = Math.Min(
+            var crewSlots = crewmates.Count == 0 ? 0 : Math.Min(
                 Math.Max(0, validated.MaxRolesPerGame - selected.Count),
                 players.Count - selected.Count);
             AddWeightedTeam(players, crewSlots, crewmates, selected, random);
