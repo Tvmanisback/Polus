@@ -9,7 +9,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "auditor",
@@ -21,7 +21,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "relay",
@@ -33,7 +33,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "quartermaster",
@@ -45,7 +45,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "surveyor",
@@ -57,7 +57,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "courier",
@@ -69,7 +69,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "archivist",
@@ -81,7 +81,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "beaconist",
@@ -93,7 +93,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "mediator",
@@ -105,7 +105,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "calibrator",
@@ -117,7 +117,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "signalwright",
@@ -129,7 +129,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "timekeeper",
@@ -141,7 +141,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "counterfeiter",
@@ -153,7 +153,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "echoist",
@@ -165,7 +165,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "blackout_artist",
@@ -177,7 +177,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "broker",
@@ -189,7 +189,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "decoyist",
@@ -201,7 +201,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "ledgerist",
@@ -213,7 +213,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "switchboarder",
@@ -225,7 +225,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "weathermaker",
@@ -237,7 +237,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "misdirector",
@@ -249,7 +249,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "scrambler",
@@ -261,7 +261,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "parasitic_signal",
@@ -273,7 +273,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "jigsaw",
@@ -285,7 +285,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "pilgrim",
@@ -297,7 +297,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "curator",
@@ -309,7 +309,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "wayfinder",
@@ -321,7 +321,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "collector",
@@ -333,7 +333,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "metronome",
@@ -345,7 +345,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "cartouche",
@@ -357,7 +357,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "lighthouse",
@@ -369,7 +369,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "weathervane",
@@ -381,7 +381,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "puzzlewright",
@@ -393,7 +393,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "timecapsule",
@@ -405,7 +405,7 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   },
   {
     "id": "nomad",
@@ -417,6 +417,6 @@
     "enabledByDefault": false,
     "spawnChance": 35,
     "cooldownSeconds": 30,
-    "status": "design-only"
+    "status": "prototype"
   }
 ]
