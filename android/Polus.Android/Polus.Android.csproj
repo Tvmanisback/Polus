@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-android35.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Polus.Android</RootNamespace>
+    <ApplicationTitle>Polus</ApplicationTitle>
+    <ApplicationId>com.tvmanisback.poluscompanion</ApplicationId>
+    <ApplicationVersion>4</ApplicationVersion>
+    <ApplicationDisplayVersion>1.3.0</ApplicationDisplayVersion>
+    <SupportedOSPlatformVersion>26.0</SupportedOSPlatformVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../LemonLoader.Core/MelonLoader.Installer.Core.csproj" />
+  </ItemGroup>
+</Project>
