@@ -262,6 +262,8 @@ public static class PolusRoleMechanics
     {
         if (player?.Data == null) return;
         var s = Get(player.PlayerId);
+        s.LastPosition = player.transform.position;
+        s.HasLastPosition = true;
         s.Ledger.Add("Meeting");
         if (s.Ledger.Count > 40) s.Ledger.RemoveAt(0);
         if (player.Data.Role is ArchivistRole) s.Progress = s.Ledger.Count;
