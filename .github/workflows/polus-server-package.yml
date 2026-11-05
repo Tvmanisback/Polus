@@ -1,0 +1,97 @@
+name: Build Polus iOS server package
+
+on:
+  push:
+    paths:
+      - "ios/Polus.ServerPlugin/**"
+      - "ios/server/**"
+      - ".github/workflows/polus-server-package.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build Polus plugin
+        run: dotnet publish ios/Polus.ServerPlugin/Polus.ServerPlugin.csproj -c Release -o package/plugins
+
+      - name: Download pinned Impostor Linux server
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="1.10.9"
+          ASSET="Impostor-Server_${VERSION}_linux-x64.tar.gz"
+          URL="https://github.com/Impostor/Impostor/releases/download/v${VERSION}/${ASSET}"
+          curl --fail --location --retry 3 "${URL}" -o /tmp/impostor.tar.gz
+          echo "54ff18b773fe2cb6458a67d5ae5291b35d5f9f60054ca30e6fc49f07cc784ad8  /tmp/impostor.tar.gz" | sha256sum --check
+          mkdir -p package/runtime
+          tar -xzf /tmp/impostor.tar.gz -C package/runtime
+          chmod +x package/runtime/Impostor.Server
+
+      - name: Create Altare startup files
+        run: |
+          mkdir -p package
+          cp ios/server/config.template.json package/config.template.json
+          cat > package/start.sh <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          cd /home/container
+          PORT="${SERVER_PORT:-${SERVER_PORT_1:-25906}}"
+          HOST="${SERVER_IP:-${SERVER_ADDRESS:-}}"
+          if [[ -z "${HOST}" ]]; then
+            HOST="$(getent ahostsv4 us-iad01.altare.global | awk 'NR==1 {print $1}')"
+          fi
+          if [[ -z "${HOST}" ]]; then
+            echo "Could not resolve Altare public IPv4. Set SERVER_IP in Startup variables."
+            exit 1
+          fi
+          python3 - "$HOST" "$PORT" <<'PY'
+          import json, pathlib, sys
+          host, port = sys.argv[1], int(sys.argv[2])
+          config = json.loads(pathlib.Path("config.template.json").read_text())
+          config["Server"].update(PublicIp=host, PublicPort=port, ListenIp="0.0.0.0", ListenPort=port)
+          config["HttpServer"].update(Enabled=True, ListenIp="0.0.0.0", ListenPort=port)
+          config["PluginLoader"] = {"Paths": ["plugins"], "LibraryPaths": []}
+          pathlib.Path("runtime/config.json").write_text(json.dumps(config, indent=2) + "\\n")
+          PY
+          echo "Starting Polus Impostor on TCP+UDP port ${PORT}; public IP ${HOST}"
+          cd runtime
+          exec ./Impostor.Server
+          SCRIPT
+          chmod +x package/start.sh
+          cat > package/README-ALTARE.txt <<'TXT'
+          POLUS iOS SERVER - ALTARE
+          1. Upload this ZIP and extract it into /home/container.
+          2. Ensure runtime/Impostor.Server and plugins/Polus.ServerPlugin.dll exist.
+          3. Set the server Startup command to: bash start.sh
+          4. Set SERVER_PORT to the assigned port (currently 25906).
+          5. Set SERVER_IP to the numeric public IPv4 for the allocation.
+          IMPORTANT: The allocation must allow BOTH TCP matchmaking and UDP gameplay
+          on the same port. If Altare only provides TCP, this host cannot run Polus.
+          TXT
+
+      - name: Package server
+        run: |
+          cd package
+          zip -qr ../polus-server.zip .
+          cd ..
+          unzip -l polus-server.zip
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: polus-server
+          path: polus-server.zip
+          if-no-files-found: error
+          retention-days: 14
