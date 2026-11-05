@@ -115,7 +115,7 @@ internal sealed class ModeCommandListener : IEventListener
         e.IsCancelled = true;
         var parts = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var command = parts[0].ToLowerInvariant();
-        var argument = parts.Length > 1 ? string.Join(' ', parts.Skip(1)).Trim() : string.Empty;
+        var argument = parts.Length > 1 ? string.Join(" ", parts.Skip(1)).Trim() : string.Empty;
         var session = _sessions.GetOrAdd(e.Game, _ => new ModeSession());
 
         if (command is "/help" or "/polus")
