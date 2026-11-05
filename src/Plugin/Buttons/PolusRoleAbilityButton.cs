@@ -78,6 +78,6 @@ public sealed class PolusRoleAbilityButton : CustomActionButton
     protected override void OnClick()
     {
         var player = PlayerControl.LocalPlayer;
-        if (player != null) PolusRoleEvents.ActivateRoleAbility(player);
+        if (player != null) PolusRoleEvents.ActivateModdedRoleAbility(player);
     }
 }
