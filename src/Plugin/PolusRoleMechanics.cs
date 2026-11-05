@@ -103,7 +103,15 @@ public static class PolusRoleMechanics
         return difference;
     }
 
-    public static bool Activate(PlayerControl player)
+    // Modded-client entry point: called by the MiraAPI custom ability button.
+    public static bool ActivateModdedRoleAbility(PlayerControl player) => ActivateRoleAbilityCore(player);
+
+    // Vanilla-client entry point: called when the host routes the built-in Kill button
+    // to this role ability instead of performing a normal kill.
+    public static bool ActivateVanillaRoleAbility(PlayerControl player) => ActivateRoleAbilityCore(player);
+
+    // Both button paths deliberately share the exact same role logic and state.
+    private static bool ActivateRoleAbilityCore(PlayerControl player)
     {
         if (player?.Data == null || !player.AmOwner || player.Data.Role is not ICustomRole custom) return false;
         var s = Get(player.PlayerId);
