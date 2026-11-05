@@ -11,7 +11,6 @@ public static class PolusRoleMechanics
     private sealed class State
     {
         public int Tasks, Progress, Snapshot, Streak, Chain;
-        public float LastTaskAt;
         public string LastType = "";
         public Vector3 LastPosition;
         public bool HasLastPosition;
@@ -40,7 +39,6 @@ public static class PolusRoleMechanics
     {
         if (player?.Data == null || string.IsNullOrWhiteSpace(type)) return;
         var s = Get(player.PlayerId);
-        var gap = Time.time - s.LastTaskAt;
         s.Tasks++;
         s.LastPosition = player.transform.position;
         s.HasLastPosition = true;
@@ -75,7 +73,9 @@ public static class PolusRoleMechanics
             case CuratorRole: s.Progress = s.TypeSectorPairs.Count; break;
             case WayfinderRole: s.Progress = s.RouteStops; break;
             case NomadRole: s.Progress = Math.Max(0, s.RouteStops - s.Sectors.Count); break;
-            case MetronomeRole: s.Progress = gap >= 3f && gap <= 15f ? s.Progress + 1 : 1; break;
+            case MetronomeRole:
+                if (s.Tasks % 3 == 0) s.Progress = s.Chain >= 3 ? s.Progress + 1 : 0;
+                break;
             case CartoucheRole: s.Progress = s.TaskPairs.Count; break;
             case WeathervaneRole: s.Progress = s.Chain / 2; break;
             case LighthouseRole: if (s.Tasks % 2 == 0) s.Progress++; break;
@@ -84,7 +84,6 @@ public static class PolusRoleMechanics
         }
 
         s.LastType = type;
-        s.LastTaskAt = Time.time;
     }
 
     public static int TakeSnapshot(byte id)
