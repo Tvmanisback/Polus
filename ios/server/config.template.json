@@ -10,6 +10,10 @@
     "ListenIp": "127.0.0.1",
     "ListenPort": 22023
   },
+  "PluginLoader": {
+    "Paths": ["plugins"],
+    "LibraryPaths": []
+  },
   "AntiCheat": {
     "Enabled": true,
     "BanIpFromGame": true,
