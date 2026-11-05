@@ -311,6 +311,6 @@ public sealed class NomadRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 7;
     public override string IdPart => "nomad";
     public override string RoleName => "Nomad";
-    public override string RoleDescription => "Builds a travel score by completing tasks in new map sectors.";
+    public override string RoleDescription => "Builds an itinerary score by returning to previously visited sectors after leaving them.";
 }
 
