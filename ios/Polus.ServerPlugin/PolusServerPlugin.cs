@@ -47,7 +47,10 @@ internal enum PolusMode
     None,
     HotPotato,
     Infection,
-    HideAndSeek
+    HideAndSeek,
+    CopsAndRobbers,
+    RandomChaos,
+    Classic
 }
 
 internal sealed class ModeSession
@@ -55,8 +58,10 @@ internal sealed class ModeSession
     public PolusMode Mode { get; set; }
     public byte? CarrierId { get; set; }
     public byte? SeekerId { get; set; }
+    public byte? CopId { get; set; }
     public ConcurrentDictionary<byte, string> OriginalNames { get; } = new();
     public ConcurrentDictionary<byte, byte> InfectedIds { get; } = new();
+    public ConcurrentDictionary<byte, byte> ArrestedIds { get; } = new();
     public GameSettingsSnapshot? OriginalSettings { get; set; }
 }
 
@@ -120,11 +125,11 @@ internal sealed class ModeCommandListener : IEventListener
 
         if (command is "/help" or "/polus")
         {
-            await Reply(e.PlayerControl, "Polus commands: /hotpotato, /infection, /hideandseek, /mode status, /mode off, /pass <player>, /infect <player>. Host selects modes.");
+            await Reply(e.PlayerControl, "Modes: /classic, /hotpotato, /infection, /hideandseek, /copsandrobbers, /randomchaos. Host selects. Round commands: /pass <player>, /infect <player>, /arrest <player>, /escape. Also /mode status and /mode off.");
             return;
         }
 
-        if (command is "/hotpotato" or "/infection" or "/hideandseek" || command == "/mode")
+        if (command is "/classic" or "/hotpotato" or "/infection" or "/hideandseek" or "/copsandrobbers" or "/randomchaos" || command == "/mode")
         {
             if (!e.ClientPlayer.IsHost)
             {
@@ -145,7 +150,9 @@ internal sealed class ModeCommandListener : IEventListener
                 session.Mode = PolusMode.None;
                 session.CarrierId = null;
                 session.SeekerId = null;
+                session.CopId = null;
                 session.InfectedIds.Clear();
+                session.ArrestedIds.Clear();
                 await e.Game.SyncSettingsAsync();
                 await Broadcast(e.Game, "Polus mode disabled. Original lobby settings restored.");
                 return;
@@ -153,33 +160,44 @@ internal sealed class ModeCommandListener : IEventListener
 
             var selected = command switch
             {
+                "/classic" => PolusMode.Classic,
                 "/hotpotato" => PolusMode.HotPotato,
                 "/infection" => PolusMode.Infection,
                 "/hideandseek" => PolusMode.HideAndSeek,
+                "/copsandrobbers" => PolusMode.CopsAndRobbers,
+                "/randomchaos" => PolusMode.RandomChaos,
+                "/mode" when argument.Equals("classic", StringComparison.OrdinalIgnoreCase) => PolusMode.Classic,
                 "/mode" when argument.Equals("hotpotato", StringComparison.OrdinalIgnoreCase) => PolusMode.HotPotato,
                 "/mode" when argument.Equals("infection", StringComparison.OrdinalIgnoreCase) => PolusMode.Infection,
                 "/mode" when argument.Equals("hideandseek", StringComparison.OrdinalIgnoreCase) => PolusMode.HideAndSeek,
+                "/mode" when argument.Equals("copsandrobbers", StringComparison.OrdinalIgnoreCase) => PolusMode.CopsAndRobbers,
+                "/mode" when argument.Equals("randomchaos", StringComparison.OrdinalIgnoreCase) => PolusMode.RandomChaos,
                 _ => PolusMode.None
             };
 
             if (selected == PolusMode.None)
             {
-                await Reply(e.PlayerControl, "Use /mode status, /mode off, or /mode hotpotato|infection|hideandseek.");
+                await Reply(e.PlayerControl, "Use /mode status, /mode off, or /mode classic|hotpotato|infection|hideandseek|copsandrobbers|randomchaos.");
                 return;
             }
 
-            if (session.Mode == PolusMode.None && e.Game.Options is NormalGameOptions original)
+            if (session.OriginalSettings is null && e.Game.Options is NormalGameOptions original)
             {
                 session.OriginalSettings = GameSettingsSnapshot.Capture(original);
             }
 
+            await RestoreNames(e.Game, session);
             session.Mode = selected;
             session.CarrierId = null;
             session.SeekerId = null;
+            session.CopId = null;
             session.InfectedIds.Clear();
-            ApplyLobbyPreset(e.Game, selected);
+            session.ArrestedIds.Clear();
+            ApplyLobbyPreset(e.Game, selected, session);
             await e.Game.SyncSettingsAsync();
-            await Broadcast(e.Game, $"Polus mode selected: {DisplayMode(selected)}. Start the round to activate it. Use /mode status to check it.");
+            await Broadcast(e.Game, selected == PolusMode.Classic
+                ? "Classic selected. Vanilla lobby settings restored; no Polus modifiers will be applied."
+                : $"Polus mode selected: {DisplayMode(selected)}. Start the round to activate it. Use /mode status to check it.");
             return;
         }
 
@@ -201,6 +219,41 @@ internal sealed class ModeCommandListener : IEventListener
             session.CarrierId = target.PlayerId;
             await ApplyNameMarkers(e.Game, session);
             await Broadcast(e.Game, $"🥔 {BaseName(target, session)} has the potato. Commands work when Among Us chat is available.");
+            return;
+        }
+
+        if (command == "/arrest")
+        {
+            if (session.Mode != PolusMode.CopsAndRobbers || session.CopId != e.PlayerControl.PlayerId)
+            {
+                await Reply(e.PlayerControl, "Only the cop can use /arrest <player>.");
+                return;
+            }
+
+            var target = FindPlayer(e.Game, argument, session);
+            if (target?.PlayerInfo is null || target.PlayerInfo.IsDead || target.PlayerId == session.CopId || session.ArrestedIds.ContainsKey(target.PlayerId))
+            {
+                await Reply(e.PlayerControl, "Player not found, already arrested, or invalid.");
+                return;
+            }
+
+            session.ArrestedIds.TryAdd(target.PlayerId, target.PlayerId);
+            await ApplyNameMarkers(e.Game, session);
+            await Broadcast(e.Game, $"🚓 {BaseName(target, session)} has been marked arrested. This is a chat/role marker; vanilla clients do not support a server-enforced movement lock.");
+            return;
+        }
+
+        if (command == "/escape")
+        {
+            if (session.Mode != PolusMode.CopsAndRobbers || session.CopId == e.PlayerControl.PlayerId ||
+                !session.ArrestedIds.TryRemove(e.PlayerControl.PlayerId, out _))
+            {
+                await Reply(e.PlayerControl, "Only an arrested robber can use /escape in Cops & Robbers.");
+                return;
+            }
+
+            await ApplyNameMarkers(e.Game, session);
+            await Broadcast(e.Game, $"🏃 {BaseName(e.PlayerControl, session)} escaped the arrest marker.");
             return;
         }
 
@@ -279,6 +332,21 @@ internal sealed class ModeCommandListener : IEventListener
                 await ApplyNameMarkers(e.Game, session);
                 await Broadcast(e.Game, $"🔎 Hide & Seek started. {BaseName(seeker, session)} is the seeker. Complete tasks to win.");
                 break;
+
+            case PolusMode.CopsAndRobbers:
+                var cop = players.FirstOrDefault(p => p.PlayerInfo!.IsImpostor) ?? players[Random.Shared.Next(players.Length)];
+                session.CopId = cop.PlayerId;
+                await ApplyNameMarkers(e.Game, session);
+                await Broadcast(e.Game, $"🚓 Cops & Robbers started. {BaseName(cop, session)} is the cop. The cop uses /arrest <player>; arrested robbers can use /escape. Arrests are chat markers, not movement locks.");
+                break;
+
+            case PolusMode.RandomChaos:
+                await Broadcast(e.Game, "🎲 Random Chaos started. The lobby settings were randomized for this round.");
+                break;
+
+            case PolusMode.Classic:
+                await Broadcast(e.Game, "🟦 Classic round started. Standard Among Us rules.");
+                break;
         }
     }
 
@@ -290,14 +358,23 @@ internal sealed class ModeCommandListener : IEventListener
             await RestoreNames(e.Game, session);
             session.CarrierId = null;
             session.SeekerId = null;
+            session.CopId = null;
             session.InfectedIds.Clear();
+            session.ArrestedIds.Clear();
         }
     }
 
-    private static void ApplyLobbyPreset(IGame game, PolusMode mode)
+    private static void ApplyLobbyPreset(IGame game, PolusMode mode, ModeSession session)
     {
         if (game.Options is not NormalGameOptions options)
         {
+            return;
+        }
+
+        if (mode == PolusMode.Classic)
+        {
+            session.OriginalSettings?.Restore(options);
+            session.OriginalSettings = null;
             return;
         }
 
@@ -323,6 +400,25 @@ internal sealed class ModeCommandListener : IEventListener
                 options.NumCommonTasks = 0;
                 options.NumLongTasks = 0;
                 options.NumShortTasks = 5;
+                break;
+            case PolusMode.CopsAndRobbers:
+                options.KillCooldown = 25f;
+                options.NumEmergencyMeetings = 0;
+                options.EmergencyCooldown = 0;
+                options.NumCommonTasks = 0;
+                options.NumLongTasks = 0;
+                options.NumShortTasks = 4;
+                break;
+            case PolusMode.RandomChaos:
+                options.NumImpostors = Random.Shared.Next(1, Math.Min(3, Math.Max(1, game.Players.Count)) + 1);
+                options.KillCooldown = Random.Shared.Next(10, 46);
+                options.NumEmergencyMeetings = Random.Shared.Next(0, 3);
+                options.EmergencyCooldown = Random.Shared.Next(0, 31);
+                options.CrewLightMod = (float)(Random.Shared.NextDouble() * 1.75 + 0.25);
+                options.ImpostorLightMod = (float)(Random.Shared.NextDouble() * 2.5 + 0.5);
+                options.NumCommonTasks = Random.Shared.Next(0, 3);
+                options.NumLongTasks = Random.Shared.Next(0, 4);
+                options.NumShortTasks = Random.Shared.Next(1, 7);
                 break;
         }
     }
@@ -353,6 +449,8 @@ internal sealed class ModeCommandListener : IEventListener
                 PolusMode.HotPotato when session.CarrierId == player.PlayerId => "🥔 " + original,
                 PolusMode.Infection when session.InfectedIds.ContainsKey(player.PlayerId) => "☣ " + original,
                 PolusMode.HideAndSeek when session.SeekerId == player.PlayerId => "🔎 " + original,
+                PolusMode.CopsAndRobbers when session.CopId == player.PlayerId => "🚓 " + original,
+                PolusMode.CopsAndRobbers when session.ArrestedIds.ContainsKey(player.PlayerId) => "🚔 " + original,
                 _ => original
             };
 
@@ -409,6 +507,9 @@ internal sealed class ModeCommandListener : IEventListener
         PolusMode.HotPotato => "Hot Potato",
         PolusMode.Infection => "Infection",
         PolusMode.HideAndSeek => "Hide & Seek",
+        PolusMode.CopsAndRobbers => "Cops & Robbers",
+        PolusMode.RandomChaos => "Random Chaos",
+        PolusMode.Classic => "Classic",
         _ => "Off"
     };
 
