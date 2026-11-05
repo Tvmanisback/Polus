@@ -21,7 +21,9 @@ public class PatchArguments
 
     public bool IsSplit { get; internal set; }
 
-    public PatchArguments(string targetApkPath, string libraryApkPath, string[] extraSplitApkPaths, string outputApkDirectory, string tempDirectory, string melonDataPath, string unityDependenciesPath, AssetRipper.Primitives.UnityVersion? unityVersion, string packageName, bool isSplit)
+    public string[] AdditionalModFiles { get; internal set; } = [];
+
+    public PatchArguments(string targetApkPath, string libraryApkPath, string[] extraSplitApkPaths, string outputApkDirectory, string tempDirectory, string melonDataPath, string unityDependenciesPath, AssetRipper.Primitives.UnityVersion? unityVersion, string packageName, bool isSplit, string[]? additionalModFiles = null)
     {
         TargetApkPath = targetApkPath;
         LibraryApkPath = libraryApkPath;
@@ -33,5 +35,6 @@ public class PatchArguments
         UnityVersion = unityVersion;
         PackageName = packageName;
         IsSplit = isSplit;
+        AdditionalModFiles = additionalModFiles ?? [];
     }
 }
