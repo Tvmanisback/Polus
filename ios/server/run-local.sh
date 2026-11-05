@@ -52,14 +52,14 @@ config["Server"]["PublicPort"] = 22023
 config["Server"]["ListenIp"] = "0.0.0.0"
 config["Server"]["ListenPort"] = 22023
 config["HttpServer"]["Enabled"] = True
-config["HttpServer"]["ListenIp"] = "127.0.0.1"
+config["HttpServer"]["ListenIp"] = "0.0.0.0"
 config["HttpServer"]["ListenPort"] = 22023
 config["PluginLoader"] = {"Paths": ["plugins"], "LibraryPaths": []}
 pathlib.Path(output).write_text(json.dumps(config, indent=2) + "\n")
 PY
 
 echo "UDP game endpoint: ${POLUS_UDP_HOST}:22023"
-echo "HTTP matchmaking endpoint: http://127.0.0.1:22023"
+echo "HTTP matchmaking listener: 0.0.0.0:22023"
 echo "Polus commands plugin: ${RUNTIME}/plugins/Polus.ServerPlugin.dll"
 echo "Keep this process running while testing."
 cd "${RUNTIME}"
