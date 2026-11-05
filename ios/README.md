@@ -1,12 +1,12 @@
 # Polus iOS
 
-Polus iOS is a separate, vanilla-client-compatible server project. It does **not** install the PC/Android role plugin and does not add custom roles to iOS. Its gameplay is based on server-controlled gamemodes.
+Polus iOS is a separate, vanilla-client-compatible server project. It does **not** install the PC/Android role plugin and does not add custom roles to iOS. Its gameplay is intended to be based on server-controlled gamemodes.
 
 ## Current status
 
-**Experimental — server not yet deployable.**
+**Experimental — local server runtime setup is in place; iOS device testing and Polus gamemodes are not yet verified.**
 
-The first target is a custom region named **Polus iOS**. The region entry will point to the Polus matchmaking/game service once the service is implemented and its public endpoint has been verified. Do not install the template region file yet: it intentionally contains a placeholder hostname.
+The server uses the upstream Impostor C# implementation for Among Us networking. The pinned v1.10.9 release states support through Among Us 19.0. The Polus region file must point to a real HTTPS matchmaking endpoint, while the game server's UDP address is configured separately.
 
 ## Design
 
@@ -18,25 +18,25 @@ The first target is a custom region named **Polus iOS**. The region entry will p
 
 ## Folders
 
-- `config/regionInfo.template.json` — documented region-file shape; placeholder only.
-- `modes/README.md` — mode requirements and compatibility boundaries.
-- `server/README.md` — server and hosting requirements.
+- config/regionInfo.template.json — region-file template; replace its placeholder host before use.
+- modes/README.md — mode requirements and compatibility boundaries.
+- server/README.md — server setup, local iOS testing, and network requirements.
 
-## Browser terminal for development
+## Free local testing
+
+Follow [the iOS server guide](server/README.md). It downloads the official Impostor v1.10.9 server release, verifies the archive, starts the UDP game service, exposes the matchmaking HTTP endpoint through a temporary HTTPS tunnel, and generates a region file.
+
+The iOS device must be on the same Wi-Fi as the computer running the server. The HTTPS tunnel does not carry UDP gameplay packets.
+
+## Browser terminal
 
 The repository includes a GitHub Codespaces environment. Open the Polus repository, choose **Code → Codespaces → Create codespace on main**, and wait for the browser editor and terminal to load.
 
-The environment provides .NET 6/8/9 and Java 17. It is intended for compiling, running tests, and launching a development server while the Codespace is active. See [the Codespaces setup notes](../.devcontainer/README.md).
+Codespaces is useful for editing and compiling. It forwards TCP ports only, while Among Us gameplay requires UDP, so a Codespace is not a playable iOS server host. See [the Codespaces setup notes](../.devcontainer/README.md).
 
-Codespaces is not permanent hosting: it can stop when idle and the free personal-account quota is limited. Do not enable paid overages just to keep a test server running.
+## Hosting
 
-## Free hosting target
-
-The preferred target is a free service that can keep the required HTTPS/WebSocket endpoint available. GitHub Pages can host static setup files, but it cannot run the live game server. GitHub Actions is build automation, not a 24/7 server.
-
-Cloudflare Workers has a free tier and supports WebSocket upgrades, but its free tier is not a drop-in host for a complete Among Us server. The Polus server still needs a compatible protocol implementation and persistent room state; this must be proven before a region URL is published.
-
-See the [Cloudflare Workers limits](https://developers.cloudflare.com/workers/platform/limits/) and [pricing](https://developers.cloudflare.com/workers/platform/pricing/).
+GitHub Pages can host setup files but cannot run the live game server. GitHub Actions is build automation, not persistent hosting. Do not publish a region URL until both the HTTPS matchmaking endpoint and UDP gameplay endpoint are reachable and have been tested with unmodified iOS clients.
 
 ## Release requirements
 
