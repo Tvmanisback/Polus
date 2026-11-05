@@ -8,6 +8,7 @@ using MiraAPI.GameEnd;
 using MiraAPI.Roles;
 using MiraAPI.Utilities;
 using Polus.Plugin.Roles;
+using Polus.RoleCore;
 
 namespace Polus.Plugin;
 
@@ -15,6 +16,7 @@ public static class PolusRoleEvents
 {
     private static readonly ConcurrentDictionary<byte, int> CompletedTasks = new();
     private static readonly ConcurrentDictionary<byte, byte> NeutralWinsTriggered = new();
+    private static readonly HostRoleEngine SharedRoleEngine = new();
 
     [RegisterEvent]
     public static void OnIntroBegin(IntroBeginEvent ev)
@@ -22,8 +24,25 @@ public static class PolusRoleEvents
         CompletedTasks.Clear();
         NeutralWinsTriggered.Clear();
         PolusRoleMechanics.Reset();
+        var assignments = new List<RoleAssignment>();
         foreach (var player in PlayerControl.AllPlayerControls.ToArray())
+        {
+            if (player?.Data == null) continue;
             PolusRoleMechanics.InitializePlayer(player);
+            var role = player.Data.Role;
+            if (role is not ICustomRole custom) continue;
+            var roleId = role.GetType().Name.EndsWith("Role", StringComparison.Ordinal)
+                ? role.GetType().Name[..^4].ToLowerInvariant()
+                : role.GetType().Name.ToLowerInvariant();
+            var team = role is PolusImpostorRole ? RoleTeam.Impostor
+                : role is PolusNeutralRole ? RoleTeam.Neutral : RoleTeam.Crewmate;
+            assignments.Add(new RoleAssignment(player.PlayerId,
+                new RoleDefinition(roleId, custom.RoleName, team, custom.RoleName,
+                    EnabledByDefault: true, SpawnChance: 100, CooldownSeconds: 25,
+                    Mechanic: "Shared Polus role engine", WinCondition: team == RoleTeam.Neutral ? "Complete role objective" : "")));
+        }
+        SharedRoleEngine.EndMatch();
+        if (assignments.Count > 0) SharedRoleEngine.StartMatch(assignments);
     }
 
     [RegisterEvent]
@@ -32,12 +51,14 @@ public static class PolusRoleEvents
         if (ev.Player == null || ev.Player.Data == null) return;
         CompletedTasks.AddOrUpdate(ev.Player.PlayerId, 1, (_, current) => current + 1);
         PolusRoleMechanics.RecordTask(ev.Player, ev.Task.TaskType.ToString());
+        try { SharedRoleEngine.RecordTask(ev.Player.PlayerId, ev.Task.TaskType.ToString(), ev.Player.transform.position.x, ev.Player.transform.position.y); } catch { }
         CheckNeutralWin(ev.Player);
     }
 
     [RegisterEvent]
     public static void OnMeetingStarted(StartMeetingEvent ev)
     {
+        SharedRoleEngine.BeginMeeting();
         foreach (var player in PlayerControl.AllPlayerControls.ToArray())
         {
             if (player == null || player.Data == null) continue;
@@ -83,4 +104,6 @@ public static class PolusRoleEvents
         CompletedTasks.TryGetValue(playerId, out var count) ? count : 0;
 
     public static int GetRoleObjectiveProgress(byte playerId) => PolusRoleMechanics.GetProgress(playerId);
+
+    public static int GetSharedRoleProgress(byte playerId) => SharedRoleEngine.GetProgress(playerId);
 }
