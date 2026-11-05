@@ -15,6 +15,10 @@
     <DebugType>none</DebugType>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Ignore arbitrary icon.png files; the app icon is generated from assets/polus-icon.svg. -->
+    <None Remove="**/icon.png" />
+    <Content Remove="**/icon.png" />
+    <EmbeddedResource Remove="**/icon.png" />
     <EmbeddedResource Include="..\Plugin\bin\Release\net6.0\Polus.Plugin.dll" LogicalName="Polus.Plugin.dll" />
     <EmbeddedResource Include="..\Plugin\bin\Release\net6.0\MiraAPI.dll" LogicalName="MiraAPI.dll" />
     <EmbeddedResource Include="..\Plugin\bin\Release\net6.0\Reactor.dll" LogicalName="Reactor.dll" />
