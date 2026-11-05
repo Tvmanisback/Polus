@@ -212,7 +212,22 @@ public sealed class PolusAndroidMod : MelonMod
 
         try
         {
-            var configuredCatalog = _catalog.Select(r => r with
+            var pluginCatalog = MiraApi.Instance.Roles.All
+                .Where(apiRole => !_catalog.Any(existing => existing.Id.Equals(apiRole.Id, StringComparison.OrdinalIgnoreCase)))
+                .Select(apiRole => new RoleDefinition(
+                    apiRole.Id,
+                    apiRole.Name,
+                    Enum.TryParse<RoleTeam>(apiRole.Team, true, out var parsedTeam) ? parsedTeam : RoleTeam.Crewmate,
+                    apiRole.Description,
+                    EnabledByDefault: true,
+                    SpawnChance: 50,
+                    CooldownSeconds: Math.Clamp(apiRole.CooldownSeconds, 0, 600),
+                    Mechanic: "Android MiraAPI plugin role",
+                    WinCondition: "Complete the role objective",
+                    Status: "plugin"))
+                .ToArray();
+            var allRoles = _catalog.Concat(pluginCatalog).ToArray();
+            var configuredCatalog = allRoles.Select(r => r with
             {
                 SpawnChance = Math.Clamp(MiraApi.Instance.Options.Get("role." + r.Id + ".spawnWeight", r.SpawnChance), 0, 100)
             }).ToArray();
