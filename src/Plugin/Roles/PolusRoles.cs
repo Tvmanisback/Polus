@@ -145,77 +145,77 @@ public sealed class CounterfeiterRole : PolusImpostorRole
 {
     public override string IdPart => "counterfeiter";
     public override string RoleName => "Counterfeiter";
-    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
+    public override string RoleDescription => "Can prepare one decoy task-board entry and track how many forged reports remain available.";
 }
 
 public sealed class EchoistRole : PolusImpostorRole
 {
     public override string IdPart => "echoist";
     public override string RoleName => "Echoist";
-    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
+    public override string RoleDescription => "Emits a short signal cue and records each echo so reported events can be compared.";
 }
 
 public sealed class BlackoutArtistRole : PolusImpostorRole
 {
     public override string IdPart => "blackout_artist";
     public override string RoleName => "Blackout Artist";
-    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
+    public override string RoleDescription => "Applies an eight-second dark visual filter to its character display, then restores its normal appearance.";
 }
 
 public sealed class BrokerRole : PolusImpostorRole
 {
     public override string IdPart => "broker";
     public override string RoleName => "Broker";
-    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
+    public override string RoleDescription => "Trades a clue token for one additional vote at the next meeting.";
 }
 
 public sealed class DecoyistRole : PolusImpostorRole
 {
     public override string IdPart => "decoyist";
     public override string RoleName => "Decoyist";
-    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
+    public override string RoleDescription => "Can reposition to a nearby player to create a decoy movement pattern.";
 }
 
 public sealed class LedgeristRole : PolusImpostorRole
 {
     public override string IdPart => "ledgerist";
     public override string RoleName => "Ledgerist";
-    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
+    public override string RoleDescription => "Stores a separate task-ledger checkpoint and tracks each delayed refresh window.";
 }
 
 public sealed class SwitchboarderRole : PolusImpostorRole
 {
     public override string IdPart => "switchboarder";
     public override string RoleName => "Switchboarder";
-    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
+    public override string RoleDescription => "Swaps positions with the nearest player using a networked position exchange.";
 }
 
 public sealed class WeathermakerRole : PolusImpostorRole
 {
     public override string IdPart => "weathermaker";
     public override string RoleName => "Weathermaker";
-    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
+    public override string RoleDescription => "Changes its character's visual palette for eight seconds to signal a new ambient condition.";
 }
 
 public sealed class MisdirectorRole : PolusImpostorRole
 {
     public override string IdPart => "misdirector";
     public override string RoleName => "Misdirector";
-    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
+    public override string RoleDescription => "Publishes a misleading room-statistic marker and tracks each published summary.";
 }
 
 public sealed class ScramblerRole : PolusImpostorRole
 {
     public override string IdPart => "scrambler";
     public override string RoleName => "Scrambler";
-    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
+    public override string RoleDescription => "Scrambles its recorded status sequence and tracks each scramble activation.";
 }
 
 public sealed class ParasiticSignalRole : PolusImpostorRole
 {
     public override string IdPart => "parasitic_signal";
     public override string RoleName => "Parasitic Signal";
-    public override string RoleDescription => "Can prepare a forged task-board report token as a deception objective.";
+    public override string RoleDescription => "Attaches a visible signal outline to a nearby player and records the tagged target.";
 }
 
 public sealed class JigsawRole : PolusNeutralRole
