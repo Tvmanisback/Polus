@@ -7,7 +7,7 @@ TEMPLATE="${ROOT}/config.template.json"
 CONFIG="${RUNTIME}/config.json"
 
 if [[ ! -x "${RUNTIME}/Impostor.Server" ]]; then
-  "${ROOT}/download-impostor.sh"
+  bash "${ROOT}/download-impostor.sh"
 fi
 
 if [[ -z "${POLUS_UDP_HOST:-}" ]]; then
