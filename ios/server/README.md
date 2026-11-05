@@ -1,55 +1,74 @@
 # Polus iOS server
 
-Polus uses the upstream [Impostor](https://github.com/Impostor/Impostor) server runtime for the actual Among Us protocol. Polus does not reimplement the game's networking layer.
+Polus uses the upstream [Impostor](https://github.com/Impostor/Impostor) runtime for the Among Us networking protocol. The Polus plugin adds the iOS mode chat commands.
 
-**Experimental:** the server runtime can now be downloaded and launched for local testing. The Polus gamemode plugin and public hosting are not finished yet.
+**Pinned runtime:** Impostor v1.10.9. Its release states compatibility through Among Us 19.0; confirm the exact installed iOS build during device testing.
 
-## Compatibility
+## Run on a local computer
 
-The pinned upstream runtime is **Impostor v1.10.9**, which states support for Among Us 2024.6.18 through 19.0. Confirm the exact iOS build against the server before treating it as supported.
+The computer running the server and the iPhone/iPad must be on the same Wi-Fi network. Install .NET SDK 8, curl, Python 3, and cloudflared.
 
-See [NOTICE.md](NOTICE.md) for upstream licensing and download details.
+From the Polus repository root:
 
-## Local iOS test (same Wi-Fi)
+    bash ios/server/run-local.sh
 
-This is the free testing route. The computer running the server and the iPhone/iPad must be on the same Wi-Fi network. The computer's LAN IPv4 address is used for UDP game traffic. A temporary HTTPS tunnel exposes only the matchmaking HTTP endpoint.
+The script downloads and checksum-verifies the upstream server, builds ios/Polus.ServerPlugin, copies Polus.ServerPlugin.dll into the runtime plugin directory, writes the server config, and starts Impostor.
 
-1. Use a computer on the same Wi-Fi as the iOS device. Install the .NET 8 runtime, curl, python3, and cloudflared.
-2. From the Polus repository root, run:
+If automatic LAN-IP detection is wrong, set POLUS_UDP_HOST to the computer's Wi-Fi IPv4 address:
 
-       bash ios/server/run-local.sh
+    POLUS_UDP_HOST=192.168.1.25 bash ios/server/run-local.sh
 
-   The script downloads the pinned official Impostor release, checks its SHA-256 digest, writes a local config, and starts the server. If automatic LAN-IP detection is wrong, set POLUS_UDP_HOST to the computer's Wi-Fi IPv4 address before running it.
-3. In a second terminal, run:
+In a second terminal, expose only the HTTP matchmaking endpoint:
 
-       bash ios/server/run-https-tunnel.sh
+    bash ios/server/run-https-tunnel.sh
 
-   Copy the temporary https://...trycloudflare.com address printed by cloudflared.
-4. In a third terminal, generate the region file:
+Copy the temporary HTTPS URL and generate the exact region filename:
 
-       bash ios/server/make-region.sh https://YOUR-NAME.trycloudflare.com
+    bash ios/server/make-region.sh https://YOUR-NAME.trycloudflare.com
 
-5. Import that generated regionInfo.json into Among Us on the iOS device using the iOS region-import flow. Select **Polus iOS** in the region selector.
-6. Create a private lobby and join it from a second device on the same Wi-Fi to test the full game connection.
+This writes ios/config/region.json. Import that file into Among Us using the import method available on the iOS device. The HTTPS tunnel does not carry UDP gameplay packets; the phone must be able to reach the computer's UDP port 22023 on the same Wi-Fi.
 
-Keep both the server and HTTPS tunnel terminals running. A quick tunnel URL changes when restarted, so regenerate the region file after restarting the tunnel.
+## Codespaces smoke test
 
-### Important network limits
+In the Polus Codespace, run:
 
-- The HTTPS tunnel handles matchmaking only. It does not tunnel the game's UDP gameplay packets.
-- This local test only works when the iOS device can reach the server computer's LAN IP over the same network.
-- GitHub Codespaces forwards TCP ports only. Its forwarded port cannot carry the UDP gameplay traffic, so a Codespace can compile the project but cannot directly host a playable iOS session.
-- This is not 24/7 hosting. Closing the server computer or stopping either process ends the test server.
-- To let players outside the local network join, the UDP game port must be reachable from the internet. Do not publish a region file until that has been tested.
+    bash ios/server/test-codespace.sh
 
-## Server files
+The test builds the Polus plugin, starts the Impostor server, verifies the plugin's startup log, and checks that the HTTP listener responds on TCP port 22023. Set the Codespaces forwarded port 22023 visibility to Public only if you need to access that HTTP test endpoint from another device.
 
-- config.template.json — baseline configuration for the upstream server.
-- download-impostor.sh — downloads and verifies the pinned upstream release.
-- run-local.sh — configures the LAN UDP address and starts the server.
-- run-https-tunnel.sh — exposes the HTTP matchmaking endpoint over temporary HTTPS.
-- make-region.sh — generates a region file from the HTTPS matchmaking URL.
+This is a server/plugin smoke test, **not** a playable iOS test. Codespaces port forwarding does not forward the UDP game traffic required by Among Us. Do not advertise a Codespaces URL as a playable Polus region.
 
-## Gamemodes
+## Chat commands
 
-The upstream server provides the compatible game networking and lobby lifecycle. Polus-specific Hot Potato, Infection, and Hide & Seek rules are still a separate implementation task; the server being able to host a vanilla lobby does not mean those modes are implemented.
+The host selects the mode from normal Among Us chat:
+
+- /hotpotato
+- /infection
+- /hideandseek
+- /mode status
+- /mode off
+- /help
+
+Round commands:
+- /pass player — current Hot Potato carrier passes the marker to a player.
+- /infect player — an infected player adds a living player to the infected team.
+
+Commands only work when the vanilla client makes chat available. Hot Potato and Infection are command-driven in this first version; no touch-detection mechanic or custom client UI is claimed.
+
+## Networking facts
+
+- Among Us matchmaking uses Impostor's HTTP service.
+- Recent Among Us versions require HTTPS in front of that HTTP service.
+- Gameplay traffic uses a separate UDP listener on port 22023.
+- The HTTPS tunnel in run-https-tunnel.sh is for matchmaking only.
+- A Codespaces forwarded TCP port cannot substitute for the UDP gameplay listener.
+
+## Files
+
+- config.template.json — Impostor runtime configuration.
+- download-impostor.sh — pinned upstream runtime download with SHA-256 verification.
+- run-local.sh — builds the plugin and launches the server.
+- run-https-tunnel.sh — temporary HTTPS tunnel for matchmaking.
+- make-region.sh — generates ios/config/region.json.
+- test-codespace.sh — Codespaces server/plugin smoke test.
+- ../Polus.ServerPlugin — Polus mode command plugin.
