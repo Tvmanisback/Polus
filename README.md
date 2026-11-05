@@ -19,11 +19,15 @@ Game updates can break mods. Polus checks the architecture and installs the offi
 - **Update Polus:** downloads the Polus.exe release asset, checks the PE header and GitHub SHA-256 digest when provided, then replaces and restarts the running patcher.
 - The patcher does not bypass anti-cheat, disable game protections, or modify matchmaking security.
 
-## Current gameplay status — read this
+## Current gameplay status
 
-The plugin project and BepInEx entry point now exist and load/validate the 35-role catalogue. **The actual 35 in-match role mechanics are not implemented yet.** There are no completed Among Us gameplay hooks, role-specific ability handlers, custom role HUD, or custom RPC synchronization in this build. The generic RoleCore assignment/cooldown/objective runtime is not by itself playable in Among Us. This repository must not be described as having all 35 playable roles until those systems are implemented and tested in-game.
+The plugin now contains role-specific gameplay hooks for all 35 role classes:
+- Crewmate roles track their own task, map-sector, meeting, streak, ledger, or checkpoint mechanics.
+- Impostor roles have distinct action handlers, including temporary visual effects, vote trading, player repositioning, position swapping, target marking, and private deception records.
+- Neutral roles use different task-pattern objectives; their custom win check uses that role's objective progress rather than a generic task total.
+- The shared action button displays a role-specific name and uses a cooldown. Quartermaster keeps its separate emergency-meeting button.
 
-Unmodified mobile clients cannot run a client-side custom plugin or display a custom role HUD. Full custom role UI and client-side effects require a compatible modded client; host-only mode cannot make vanilla clients execute arbitrary custom code.
+This is an initial gameplay implementation, not a claim of fully balanced or multiplayer-verified gameplay. The latest GitHub Actions build must pass, and the mod still needs testing in an actual modded lobby. All clients must have a compatible Polus build; vanilla mobile clients cannot execute the custom role code or display its custom effects.
 
 ## Build
 
