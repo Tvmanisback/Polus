@@ -56,42 +56,40 @@ jobs:
             echo "Could not resolve Altare public IPv4. Set SERVER_IP in Startup variables."
             exit 1
           fi
-          python3 - "$HOST" "$PORT" <<'PY'
-          import json, pathlib, sys
-          host, port = sys.argv[1], int(sys.argv[2])
-          config = json.loads(pathlib.Path("config.template.json").read_text())
-          config["Server"].update(PublicIp=host, PublicPort=port, ListenIp="0.0.0.0", ListenPort=port)
-          config["HttpServer"].update(Enabled=True, ListenIp="0.0.0.0", ListenPort=port)
-          config["PluginLoader"] = {"Paths": ["plugins"], "LibraryPaths": []}
-          pathlib.Path("runtime/config.json").write_text(json.dumps(config, indent=2) + "\\n")
-          PY
-          echo "Starting Polus Impostor on TCP+UDP port ${PORT}; public IP ${HOST}"
+          if ! [[ "${PORT}" =~ ^[0-9]+$ ]] || (( PORT < 1 || PORT > 65535 )); then
+            echo "Invalid server port: ${PORT}"
+            exit 1
+          fi
+          cp config.template.json runtime/config.json
+          sed -i \
+            -e "s/\\"PublicIp\\": \\"127.0.0.1\\"/\\"PublicIp\\": \\"${HOST}\\"/" \
+            -e "s/\\"PublicPort\\": 22023/\\"PublicPort\\": ${PORT}/" \
+            -e "s/\\"ListenPort\\": 22023/\\"ListenPort\\": ${PORT}/g" \
+            runtime/config.json
+          echo "Starting Polus Impostor on port ${PORT}; public IP ${HOST}"
           cd runtime
           exec ./Impostor.Server
           SCRIPT
           chmod +x package/start.sh
           cat > package/README-ALTARE.txt <<'TXT'
           POLUS iOS SERVER - ALTARE
-          1. Upload this ZIP and extract it into /home/container.
-          2. Ensure runtime/Impostor.Server and plugins/Polus.ServerPlugin.dll exist.
-          3. Set the server Startup command to: bash start.sh
-          4. Set SERVER_PORT to the assigned port (currently 25906).
-          5. Set SERVER_IP to the numeric public IPv4 for the allocation.
-          IMPORTANT: The allocation must allow BOTH TCP matchmaking and UDP gameplay
-          on the same port. If Altare only provides TCP, this host cannot run Polus.
+          1. Extract polus-server.tar.gz into /home/container using the Startup command.
+          2. Set Startup command to:
+             tar -xzf /home/container/polus-server.tar.gz -C /home/container && bash /home/container/start.sh
+          3. The allocation must allow BOTH TCP matchmaking and UDP gameplay on the same port.
+          4. Set SERVER_PORT to the assigned allocation port if it is not 25906.
+          5. Set SERVER_IP to the allocation's numeric public IPv4 if automatic resolution does not work.
           TXT
 
-      - name: Package server
+      - name: Package server archive
         run: |
-          cd package
-          zip -qr ../polus-server.zip .
-          cd ..
-          unzip -l polus-server.zip
+          tar -czf polus-server.tar.gz -C package .
+          tar -tzf polus-server.tar.gz | head -80
 
-      - name: Upload ZIP artifact
+      - name: Upload server artifact
         uses: actions/upload-artifact@v4
         with:
           name: polus-server
-          path: polus-server.zip
+          path: polus-server.tar.gz
           if-no-files-found: error
           retention-days: 14
