@@ -28,7 +28,7 @@ public sealed class MainActivity : Activity, IPatchLogger
     {
         var root = new LinearLayout(this) { Orientation = Orientation.Vertical };
         root.SetPadding(36, 48, 36, 24);
-        var title = new TextView(this) { Text = "POLUS", TextSize = 32, Gravity = Android.Views.GravityFlags.Center };
+        var title = new TextView(this) { Text = "POLUS", TextSize = 32, Gravity = global::Android.Views.GravityFlags.Center };
         root.AddView(title);
         root.AddView(new TextView(this) { Text = "LemonLoader Android patcher", TextSize = 18, Gravity = Android.Views.GravityFlags.Center });
         _status = new TextView(this) { TextSize = 14 };
@@ -148,7 +148,7 @@ public sealed class MainActivity : Activity, IPatchLogger
             .SetPositiveButton("Continue", (_, _) =>
             {
                 var delete = new Intent(Intent.ActionDelete);
-                delete.SetData(Android.Net.Uri.Parse("package:" + GamePackage));
+                delete.SetData(global::Android.Net.Uri.Parse("package:" + GamePackage));
                 StartActivityForResult(delete, 9401);
             })
             .Show();
@@ -185,7 +185,7 @@ public sealed class MainActivity : Activity, IPatchLogger
                 throw new InvalidOperationException("The patched base.apk is missing.");
 
             var installer = PackageManager!.PackageInstaller;
-            var parameters = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.ModeFullInstall);
+            var parameters = new PackageInstaller.SessionParams(1);
             parameters.SetAppPackageName(GamePackage);
             var sessionId = installer.CreateSession(parameters);
             using (var session = installer.OpenSession(sessionId))
