@@ -43,6 +43,7 @@ public sealed class PolusAndroidMod : MelonMod
 
     public override void OnUpdate()
     {
+        AndroidRoleEffectAdapter.Tick();
         if (PolusHostRoles.TryGetKeybind("polus.menu", out var menuKey)
             && Enum.TryParse<KeyCode>(menuKey, true, out var key)
             && Input.GetKeyDown(key) && _choiceMade && _moddedMode)
@@ -63,7 +64,14 @@ public sealed class PolusAndroidMod : MelonMod
             _panelOpen = !_panelOpen;
 
         if (_panelOpen)
-            _panel = GUI.Window(0x504F4C, _panel, id => DrawPanel(id), "POLUS ANDROID");
+        {
+            GUI.BeginArea(_panel);
+            GUI.Box(new Rect(0, 0, _panel.width, _panel.height), "POLUS ANDROID");
+            GUILayout.BeginArea(new Rect(12, 30, _panel.width - 24, _panel.height - 42));
+            DrawPanel(0);
+            GUILayout.EndArea();
+            GUI.EndArea();
+        }
 
         var localId = GetLocalPlayerId();
         if (localId.HasValue && AssignedRoles.TryGetValue(localId.Value, out var role))
