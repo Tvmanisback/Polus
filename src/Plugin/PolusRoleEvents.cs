@@ -26,6 +26,7 @@ public static class PolusRoleEvents
         CompletedTasks.Clear();
         NeutralWinsTriggered.Clear();
         PolusRoleMechanics.Reset();
+        if (AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost) return;
         var assignments = new List<RoleAssignment>();
         foreach (var player in PlayerControl.AllPlayerControls.ToArray())
         {
@@ -59,6 +60,7 @@ public static class PolusRoleEvents
         if (ev.Player == null || ev.Player.Data == null) return;
         CompletedTasks.AddOrUpdate(ev.Player.PlayerId, 1, (_, current) => current + 1);
         PolusRoleMechanics.RecordTask(ev.Player, ev.Task.TaskType.ToString());
+        if (AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost) { CheckNeutralWin(ev.Player); return; }
         try
         {
             SharedRoleEngine.RecordTask(ev.Player.PlayerId, ev.Task.TaskType.ToString(), ev.Player.transform.position.x, ev.Player.transform.position.y);
@@ -71,6 +73,7 @@ public static class PolusRoleEvents
     [RegisterEvent]
     public static void OnMeetingStarted(StartMeetingEvent ev)
     {
+        if (AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost) return;
         SharedRoleEngine.BeginMeeting();
         SharedEffects.BeginMeeting();
         foreach (var player in PlayerControl.AllPlayerControls.ToArray())
@@ -94,7 +97,7 @@ public static class PolusRoleEvents
 
     private static bool ActivateRoleAbility(PlayerControl player, bool vanillaButton)
     {
-        if (player == null || !AmongUsClient.Instance.AmHost) return false;
+        if (player == null || AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost) return false;
         var decision = SharedEffects.TryUseAbility(player.PlayerId, DateTimeOffset.UtcNow, 25, out _);
         if (!decision.Accepted) return false;
         var activated = vanillaButton
