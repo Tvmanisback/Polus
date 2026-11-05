@@ -10,6 +10,10 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
   <ItemGroup>
+    <!-- icon.png is deliberately excluded from every build item type. -->
+    <None Remove="**/icon.png" />
+    <Content Remove="**/icon.png" />
+    <EmbeddedResource Remove="**/icon.png" />
     <ProjectReference Include="..\RoleCore\RoleCore.csproj" />
     <PackageReference Include="BepInEx.Unity.IL2CPP" Version="6.0.0-be.788" />
     <PackageReference Include="NextBepLoader.BepInEx.IL2CPP.MSBuild" Version="2.1.0-dev-6" PrivateAssets="all" ExcludeAssets="runtime" />
