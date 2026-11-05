@@ -40,6 +40,7 @@ internal static class PolusVanillaRoleButtonUpdatePatch
         button.SetCoolDown(_cooldown, 25f);
     }
 
+    internal static bool CanActivate => _cooldown <= 0f;
     internal static void StartCooldown() => _cooldown = 25f;
 }
 
@@ -59,15 +60,11 @@ internal static class PolusVanillaRoleButtonClickPatch
             AmongUsClient.Instance.GameState != InnerNetClient.GameStates.Started)
             return false;
 
-        if (_cooldownReady())
-        {
-            if (PolusRoleEvents.ActivateVanillaRoleAbility(player))
-                PolusVanillaRoleButtonUpdatePatch.StartCooldown();
-        }
+        if (__instance != null && __instance.isActiveAndEnabled &&
+            PolusVanillaRoleButtonUpdatePatch.CanActivate &&
+            PolusRoleEvents.ActivateVanillaRoleAbility(player))
+            PolusVanillaRoleButtonUpdatePatch.StartCooldown();
 
         return false;
-
-        bool _cooldownReady() =>
-            __instance != null && __instance.isActiveAndEnabled;
     }
 }
