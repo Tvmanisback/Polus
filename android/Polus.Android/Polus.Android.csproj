@@ -15,6 +15,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../LemonLoader.Core/MelonLoader.Installer.Core.csproj" />
+    <AndroidAsset Include="../../assets/patcher/index.html" Link="patcher/index.html" />
     <EmbeddedResource Include="../Polus.Mod/bin/Release/net6.0/Polus.AndroidMod.dll" LogicalName="Polus.Android.Polus.AndroidMod.dll" />
     <EmbeddedResource Include="../Polus.Mod/bin/Release/net6.0/Polus.RoleCore.dll" LogicalName="Polus.Android.Polus.RoleCore.dll" />
   </ItemGroup>
