@@ -42,8 +42,6 @@ public sealed class PolusHostPanel : MonoBehaviour
 
     public void OnGUI()
     {
-        // The host-only check is repeated at render time. Non-host clients never
-        // draw this window, even if they somehow retain the component.
         if (!_visible || !IsHost) return;
         _window = GUI.Window(731904, _window, (GUI.WindowFunction)DrawWindow,
             "POLUS HOST PANEL  |  P to close");
@@ -110,7 +108,7 @@ public sealed class PolusHostPanel : MonoBehaviour
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Crew vision x2")) ApplyPrivateSetting(FloatOptionNames.CrewmateVision, 2f);
+            if (GUILayout.Button("Crew vision x2")) ApplyPrivateSetting(FloatOptionNames.CrewmateLightMod, 2f);
             if (GUILayout.Button("Impostor vision x2")) ApplyPrivateSetting(FloatOptionNames.ImpostorLightMod, 2f);
             GUILayout.EndHorizontal();
 
@@ -122,7 +120,7 @@ public sealed class PolusHostPanel : MonoBehaviour
             if (GUILayout.Button("Reset gameplay settings"))
             {
                 ApplyPrivateSetting(FloatOptionNames.PlayerSpeedMod, 1f);
-                ApplyPrivateSetting(FloatOptionNames.CrewmateVision, 1f);
+                ApplyPrivateSetting(FloatOptionNames.CrewmateLightMod, 1f);
                 ApplyPrivateSetting(FloatOptionNames.ImpostorLightMod, 1.5f);
                 ApplyPrivateSetting(FloatOptionNames.KillCooldown, 30f);
             }
@@ -131,22 +129,11 @@ public sealed class PolusHostPanel : MonoBehaviour
         GUI.DragWindow(new Rect(0, 0, 10000, 24));
     }
 
-    private static bool IsPrivateLobby
-    {
-        get
-        {
-            try
-            {
-                return GameStartManager.Instance != null &&
-                       !GameStartManager.Instance.GamePublic;
-            }
-            catch { return false; }
-        }
-    }
+    private static bool IsPrivateLobby =>
+        AmongUsClient.Instance != null && !AmongUsClient.Instance.IsGamePublic;
 
     private static void ApplyPrivateSetting(FloatOptionNames option, float value)
     {
-        // Only the host may change settings, and only while the lobby is private.
         if (!IsHost || !IsPrivateLobby || PlayerControl.LocalPlayer == null ||
             GameOptionsManager.Instance == null ||
             GameOptionsManager.Instance.CurrentGameOptions == null)
@@ -154,9 +141,12 @@ public sealed class PolusHostPanel : MonoBehaviour
 
         try
         {
-            var options = GameOptionsManager.Instance.CurrentGameOptions;
+            var manager = GameOptionsManager.Instance;
+            var options = manager.CurrentGameOptions;
             options.SetFloat(option, value);
-            PlayerControl.LocalPlayer.RpcSyncSettings(options);
+            var bytes = manager.GameOptionsFactory.ToBytes(
+                options, AprilFoolsMode.IsAprilFoolsModeToggledOn);
+            PlayerControl.LocalPlayer.RpcSyncSettings(bytes);
         }
         catch (Exception ex)
         {
@@ -166,7 +156,6 @@ public sealed class PolusHostPanel : MonoBehaviour
 
     private static void Moderate(PlayerControl target, bool ban)
     {
-        // Re-check authority at action time; never trust the window's visibility.
         if (!IsHost || target == null || target.AmOwner) return;
 
         try
