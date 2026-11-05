@@ -26,13 +26,25 @@ internal static class PolusRoleEffectAdapter
             "temporary_self_palette" => ApplyTemporaryVisual(actor, dark: false),
             "mark_nearest_player" => MarkNearest(actor),
             "meeting_bonus_vote" => GrantBonusVote(actor, command.Value),
-            _ => true
+            "record_map_sector" or "audit_checkpoint" or "meeting_audit" or "decode_signal"
+                or "delivery_ledger" or "event_ledger" or "beacon_status" or "mediation_status"
+                or "calibration_status" or "signal_chain_status" or "store_checkpoint"
+                or "private_decoy_entry" or "emit_signal_cue" or "record_trade"
+                or "scramble_private_ledger" or "show_objective_progress" => ShowStatus(command.Message),
+            _ => false
         };
 
         if (succeeded && command.Kind is not "none")
             Helpers.CreateAndShowNotification(command.Message, new Color32(105, 190, 255, 255),
                 new Vector3(0f, 2f, -50f));
         return succeeded;
+    }
+
+    private static bool ShowStatus(string message)
+    {
+        Helpers.CreateAndShowNotification(message, new Color32(105, 190, 255, 255),
+            new Vector3(0f, 2f, -50f));
+        return true;
     }
 
     private static PlayerControl? Nearest(PlayerControl actor)
