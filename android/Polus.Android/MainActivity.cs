@@ -3,6 +3,7 @@ using Android.Content;
 using Android.Content.PM;
 using Android.OS;
 using Android.Widget;
+using Android.Webkit;
 using MelonLoader.Installer.Core;
 
 namespace Polus.Android;
@@ -11,9 +12,7 @@ namespace Polus.Android;
 public sealed class MainActivity : Activity, IPatchLogger
 {
     private const string GamePackage = "com.innersloth.spacemafia";
-    private TextView _status = null!;
-    private Button _patch = null!;
-    private Button _install = null!;
+    private WebView _webView = null!;
     private string? _outputDirectory;
     private readonly HttpClient _http = new();
 
@@ -26,23 +25,38 @@ public sealed class MainActivity : Activity, IPatchLogger
 
     private void BuildUi()
     {
-        var root = new LinearLayout(this) { Orientation = Orientation.Vertical };
-        root.SetPadding(36, 48, 36, 24);
-        var title = new TextView(this) { Text = "POLUS", TextSize = 32, Gravity = global::Android.Views.GravityFlags.Center };
-        root.AddView(title);
-        root.AddView(new TextView(this) { Text = "LemonLoader Android patcher", TextSize = 18, Gravity = global::Android.Views.GravityFlags.Center });
-        _status = new TextView(this) { TextSize = 14 };
-        root.AddView(_status);
-        _patch = new Button(this) { Text = "Patch installed Among Us" };
-        _patch.Click += async (_, _) => await PatchInstalledGame();
-        root.AddView(_patch);
-        _install = new Button(this) { Text = "Replace Among Us with patched build", Enabled = false };
-        _install.Click += (_, _) => ConfirmReplaceGame();
-        root.AddView(_install);
-        var note = new TextView(this) { Text = "Polus uses the LemonLoader patch engine directly. Patching creates newly signed APK(s); Android normally cannot install them as an update over the Play Store-signed game. Back up your game data first. This tool does not delete the original installation or silently install the patched build." };
-        root.AddView(note);
-        SetContentView(root);
+        _webView = new WebView(this);
+        _webView.Settings.JavaScriptEnabled = true;
+        _webView.Settings.DomStorageEnabled = true;
+        _webView.SetWebViewClient(new WebViewClient());
+        _webView.AddJavascriptInterface(new PolusAndroidBridge(this), "AndroidBridge");
+        SetContentView(_webView);
+        _webView.LoadUrl("file:///android_asset/patcher/index.html");
+        _webView.PostDelayed(() =>
+        {
+            Evaluate("window.Polus && window.Polus.platform('android')");
+            RefreshGameStatus();
+        }, 250);
     }
+
+    internal void HandleUiAction(string action)
+    {
+        switch (action)
+        {
+            case "detect": RefreshGameStatus(); break;
+            case "patch": _ = PatchInstalledGame(); break;
+            case "install": ConfirmReplaceGame(); break;
+        }
+    }
+
+    private void Evaluate(string script)
+    {
+        if (_webView == null) return;
+        RunOnUiThread(() => _webView.EvaluateJavascript(script, null));
+    }
+
+    private void SetInstallEnabled(bool enabled) =>
+        Evaluate($"window.Polus && window.Polus.installEnabled({enabled.ToString().ToLowerInvariant()})");
 
     private void RefreshGameStatus()
     {
@@ -50,13 +64,11 @@ public sealed class MainActivity : Activity, IPatchLogger
         {
             var info = PackageManager!.GetApplicationInfo(GamePackage, 0);
             var paths = GetApkPaths(info);
-            _status.Text = $"Found Among Us. APK parts: {paths.Length}. Device ABI: {string.Join(", ", Build.SupportedAbis ?? Array.Empty<string>())}";
-            _patch.Enabled = Build.SupportedAbis?.Contains("arm64-v8a") == true;
+            SetStatus($"Found Among Us. APK parts: {paths.Length}. Device ABI: {string.Join(", ", Build.SupportedAbis ?? Array.Empty<string>())}");
         }
         catch (PackageManager.NameNotFoundException)
         {
-            _status.Text = "Among Us is not installed. Install the official game first.";
-            _patch.Enabled = false;
+            SetStatus("Among Us is not installed. Install the official game first.");
         }
     }
 
@@ -69,7 +81,7 @@ public sealed class MainActivity : Activity, IPatchLogger
 
     private async Task PatchInstalledGame()
     {
-        _patch.Enabled = false;
+        Evaluate("window.Polus && window.Polus.busy(true)");
         try
         {
             var app = PackageManager!.GetApplicationInfo(GamePackage, 0);
@@ -125,7 +137,7 @@ public sealed class MainActivity : Activity, IPatchLogger
             if (!success) throw new InvalidOperationException("LemonLoader patching failed. See the log above.");
             var outputs = Directory.GetFiles(output, "*.apk");
             _outputDirectory = output;
-            RunOnUiThread(() => _install.Enabled = outputs.Length > 0 && outputs.Any(p => Path.GetFileName(p).Equals("base.apk", StringComparison.OrdinalIgnoreCase)));
+            SetInstallEnabled(outputs.Length > 0 && outputs.Any(p => Path.GetFileName(p).Equals("base.apk", StringComparison.OrdinalIgnoreCase)));
             SetStatus("Patch complete. Output files:\n" + string.Join("\n", outputs) +
                 "\n\nThese APKs are signed with the patcher's key. They cannot update the original Play Store-signed app in place. Polus has left the original installation untouched.");
         }
@@ -135,7 +147,7 @@ public sealed class MainActivity : Activity, IPatchLogger
         }
         finally
         {
-            _patch.Enabled = true;
+            Evaluate("window.Polus && window.Polus.busy(false)");
         }
     }
 
@@ -233,8 +245,26 @@ public sealed class MainActivity : Activity, IPatchLogger
 
     private void SetStatus(string message)
     {
-        RunOnUiThread(() => _status.Text = message);
+        Evaluate($"window.Polus && window.Polus.status({System.Text.Json.JsonSerializer.Serialize(message)}, false)");
     }
 
-    public void Log(string message) => SetStatus(message);
+    public void Log(string message)
+    {
+        Evaluate($"window.Polus && window.Polus.log({System.Text.Json.JsonSerializer.Serialize(message)})");
+        SetStatus(message);
+    }
+}
+
+
+namespace Polus.Android;
+
+[Android.Runtime.Preserve(AllMembers = true)]
+public sealed class PolusAndroidBridge
+{
+    private readonly MainActivity _activity;
+    public PolusAndroidBridge(MainActivity activity) => _activity = activity;
+
+    [JavascriptInterface]
+    [Export("action")]
+    public void Action(string action) => _activity.RunOnUiThread(() => _activity.HandleUiAction(action));
 }
