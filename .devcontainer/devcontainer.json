@@ -1,0 +1,35 @@
+{
+  "name": "Polus Development",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-9.0-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "6.0,8.0"
+    },
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "17"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+        "ms-vscode.powershell",
+        "GitHub.vscode-pull-request-github"
+      ]
+    }
+  },
+  "forwardPorts": [22023, 22024],
+  "portsAttributes": {
+    "22023": {
+      "label": "Polus iOS game server",
+      "onAutoForward": "notify"
+    },
+    "22024": {
+      "label": "Polus iOS server status",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "dotnet --list-sdks && java -version",
+  "remoteUser": "vscode"
+}
