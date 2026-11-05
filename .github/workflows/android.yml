@@ -31,6 +31,33 @@ jobs:
         run: dotnet restore android/Polus.Android/Polus.Android.csproj
       - name: Build Polus Android APK
         run: dotnet publish android/Polus.Android/Polus.Android.csproj -c Release -f net8.0-android35.0 -p:AndroidPackageFormat=apk
+      - name: Locate APK
+        id: apk
+        shell: bash
+        run: |
+          APK_PATH="$(find android/Polus.Android/bin/Release/net8.0-android35.0 -type f -name '*.apk' | head -n 1)"
+          test -n "$APK_PATH"
+          echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
+      - name: Capture Polus patcher UI
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect
+          script: |
+            adb install "${{ steps.apk.outputs.path }}"
+            adb shell monkey -p com.tvmanisback.poluscompanion 1
+            sleep 12
+            mkdir -p artifacts
+            adb shell screencap -p /sdcard/polus-android-patcher.png
+            adb pull /sdcard/polus-android-patcher.png artifacts/polus-android-patcher.png
+            test -s artifacts/polus-android-patcher.png
+      - name: Upload Android UI screenshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: Polus-Android-Patcher-Screenshot
+          path: artifacts/polus-android-patcher.png
       - name: Upload Android mod assemblies
         uses: actions/upload-artifact@v4
         with:
@@ -42,4 +69,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Polus-Android-LemonLoader
-          path: android/Polus.Android/bin/Release/net8.0-android35.0/publish/*.apk
+          path: ${{ steps.apk.outputs.path }}
