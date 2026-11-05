@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Web.WebView2.WinForms;
 
 namespace Polus.Patcher;
 
@@ -26,53 +27,66 @@ public sealed class MainForm : Form
     private string? latestReleaseTag;
     private string? latestReleaseDigest;
 
+    private readonly WebView2 browser = new() { Dock = DockStyle.Fill };
+    private bool browserReady;
+
     public MainForm()
     {
         Text = "Polus";
-        Width = 790;
-        Height = 540;
-        MinimumSize = new Size(710, 470);
+        Width = 1040;
+        Height = 760;
+        MinimumSize = new Size(760, 620);
         StartPosition = FormStartPosition.CenterScreen;
+        BackColor = Color.FromArgb(8, 13, 18);
+        Controls.Add(browser);
+        Shown += async (_, _) => await InitializeBrowserAsync();
+        Log("Ready. Detect your Steam installation, then run Setup loader.");
+    }
 
-        var heading = new Label { Text = "POLUS  /  AMONG US ROLE MOD", AutoSize = true, Font = new Font("Segoe UI", 17, FontStyle.Bold) };
-        var pathRow = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = false };
-        pathRow.Controls.Add(new Label { Text = "Steam game folder:", AutoSize = true, Padding = new Padding(0, 8, 0, 0) });
-        pathRow.Controls.Add(pathBox);
-        var detect = new Button { Text = "Detect Steam", AutoSize = true };
-        detect.Click += (_, _) => DetectSteam();
-        var browse = new Button { Text = "Browse...", AutoSize = true };
-        browse.Click += (_, _) => Browse();
-        pathRow.Controls.Add(detect);
-        pathRow.Controls.Add(browse);
+    private async Task InitializeBrowserAsync()
+    {
+        try
+        {
+            await browser.EnsureCoreWebView2Async();
+            browser.CoreWebView2.WebMessageReceived += async (_, args) =>
+                await HandleBrowserActionAsync(args.TryGetWebMessageAsString());
+            using var stream = typeof(MainForm).Assembly.GetManifestResourceStream("Polus.Patcher.index.html")
+                ?? throw new InvalidOperationException("The shared Polus patcher HTML resource is missing.");
+            using var reader = new StreamReader(stream);
+            browser.NavigateToString(await reader.ReadToEndAsync());
+            browserReady = true;
+            await browser.CoreWebView2.ExecuteScriptAsync("window.Polus && window.Polus.platform('pc')");
+            await UpdateBrowserAsync("path", gamePath ?? "");
+            await UpdateBrowserAsync("status", "Waiting for game selection", false);
+            foreach (var line in logBox.Lines.Where(line => !string.IsNullOrWhiteSpace(line)))
+                await UpdateBrowserAsync("log", line);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Polus could not load its HTML interface. Install the Microsoft Edge WebView2 Runtime and restart Polus.\n\n" + ex.Message,
+                "Polus interface error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
 
-        var actions = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true };
-        var setup = new Button { Text = "Setup", Width = 112, Height = 38 };
-        setup.Click += async (_, _) => await SetupAsync();
-        patchButton.Click += async (_, _) => await PatchAsync();
-        var restore = new Button { Text = "Restore", Width = 112, Height = 38 };
-        restore.Click += (_, _) => Restore();
-        var checkUpdates = new Button { Text = "Check for updates", Width = 145, Height = 38 };
-        checkUpdates.Click += async (_, _) => await CheckUpdatesAsync();
-        updateButton.Click += async (_, _) => await UpdatePolusAsync();
-        actions.Controls.AddRange(new Control[] { setup, patchButton, restore, checkUpdates, updateButton, updateStatus });
+    private async Task HandleBrowserActionAsync(string action)
+    {
+        switch (action)
+        {
+            case "detect": DetectSteam(); break;
+            case "browse": Browse(); break;
+            case "setup": await SetupAsync(); break;
+            case "patch": await PatchAsync(); break;
+            case "restore": Restore(); break;
+            case "checkUpdates": await CheckUpdatesAsync(); break;
+            case "update": await UpdatePolusAsync(); break;
+        }
+    }
 
-        var note = new Label {
-            Text = "Setup detects the Steam installation and installs the official BepInEx IL2CPP x64 loader. Patch installs the Polus plugin files. Close Among Us before setup, patching, restoring, or updating.",
-            AutoSize = true, MaximumSize = new Size(735, 0), ForeColor = Color.DimGray
-        };
-        var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(14), ColumnCount = 1, RowCount = 5 };
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        layout.Controls.Add(heading, 0, 0);
-        layout.Controls.Add(pathRow, 0, 1);
-        layout.Controls.Add(actions, 0, 2);
-        layout.Controls.Add(note, 0, 3);
-        layout.Controls.Add(logBox, 0, 4);
-        Controls.Add(layout);
-        Log("Ready. Press Setup to detect Steam and install BepInEx automatically.");
+    private async Task UpdateBrowserAsync(string method, params object[] values)
+    {
+        if (!browserReady || browser.CoreWebView2 == null) return;
+        var args = string.Join(",", values.Select(JsonSerializer.Serialize));
+        await browser.CoreWebView2.ExecuteScriptAsync($"window.Polus && window.Polus.{method}({args})");
     }
 
     private static HttpClient CreateHttpClient()
@@ -85,7 +99,7 @@ public sealed class MainForm : Form
     private void DetectSteam()
     {
         var found = FindSteamInstall();
-        if (found is null) { Log("Steam install not found automatically. Use Browse."); return; }
+        if (found is null) { Log("Steam install not found automatically. Use Browse."); _ = UpdateBrowserAsync("status", "Steam not detected — browse for the game folder", false); return; }
         SetGamePath(found);
         Log("Detected Steam installation: " + found);
     }
@@ -139,6 +153,8 @@ public sealed class MainForm : Form
         }
         gamePath = Path.GetFullPath(path);
         pathBox.Text = gamePath;
+        _ = UpdateBrowserAsync("path", gamePath);
+        _ = UpdateBrowserAsync("status", "Among Us folder selected", true);
     }
 
     private static bool Is64BitPe(string path)
@@ -352,12 +368,14 @@ public sealed class MainForm : Form
             var latestText = (latestReleaseTag ?? "").TrimStart('v', 'V');
             var isNewer = Version.TryParse(latestText, out var latest) && latest > current;
             updateStatus.Text = isNewer ? $"Update available: {latestReleaseTag}" : $"Latest: {latestReleaseTag}";
+            _ = UpdateBrowserAsync("updates", updateStatus.Text, isNewer);
             updateButton.Enabled = isNewer;
             Log(isNewer ? $"Polus update available: {latestReleaseTag}" : $"Polus is current ({latestReleaseTag}).");
         }
         catch (Exception ex)
         {
             updateStatus.Text = "Update check failed";
+            _ = UpdateBrowserAsync("updates", updateStatus.Text, false);
             Log("Update check failed: " + ex.Message);
             MessageBox.Show(ex.Message, "Polus updates", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
@@ -408,6 +426,13 @@ public sealed class MainForm : Form
         }
     }
 
-    private void Log(string message) =>
-        logBox.AppendText($"[{DateTime.Now:HH:mm:ss}] {message}{Environment.NewLine}");
+    private void Log(string message)
+    {
+        var line = $"[{DateTime.Now:HH:mm:ss}] {message}";
+        logBox.AppendText(line + Environment.NewLine);
+        _ = UpdateBrowserAsync("log", line);
+        _ = UpdateBrowserAsync("status", message, message.Contains("finished", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("installed", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("completed", StringComparison.OrdinalIgnoreCase));
+    }
 }
