@@ -263,7 +263,7 @@ public sealed class MetronomeRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 6;
     public override string IdPart => "metronome";
     public override string RoleName => "Metronome";
-    public override string RoleDescription => "Completes tasks in a timing window to maintain a rhythm sequence.";
+    public override string RoleDescription => "Completes groups of three different task types in a row to maintain a rhythm sequence.";
 }
 
 public sealed class CartoucheRole : PolusNeutralRole
