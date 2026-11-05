@@ -6,10 +6,6 @@ using UnityEngine;
 
 namespace Polus.Plugin.Buttons;
 
-/// <summary>
-/// Every Polus role receives one match-scoped action. Crew and Impostor roles
-/// bank a bonus vote for the next meeting; Neutral roles advance their objective.
-/// </summary>
 public sealed class PolusRoleAbilityButton : CustomActionButton
 {
     public override string Name
@@ -17,14 +13,50 @@ public sealed class PolusRoleAbilityButton : CustomActionButton
         get
         {
             var role = PlayerControl.LocalPlayer?.Data?.Role;
-            return role is PolusNeutralRole ? "Objective Focus"
-                : role is PolusImpostorRole ? "Deception"
-                : "Field Report";
+            return role switch
+            {
+                CartographerRole => "Map Survey",
+                AuditorRole => "Audit",
+                RelayRole => "Decode Signal",
+                QuartermasterRole => "Supply Call",
+                SurveyorRole => "Survey",
+                CourierRole => "Delivery Log",
+                ArchivistRole => "Open Archive",
+                BeaconistRole => "Beacon Pulse",
+                MediatorRole => "Mediate",
+                CalibratorRole => "Calibrate",
+                SignalwrightRole => "Link Signal",
+                TimekeeperRole => "Time Check",
+                CounterfeiterRole => "Forge Report",
+                EchoistRole => "Echo Cue",
+                BlackoutArtistRole => "Blackout",
+                BrokerRole => "Trade",
+                DecoyistRole => "Decoy Shift",
+                LedgeristRole => "Delay Ledger",
+                SwitchboarderRole => "Switch",
+                WeathermakerRole => "Weather Shift",
+                MisdirectorRole => "Misdirect",
+                ScramblerRole => "Scramble",
+                ParasiticSignalRole => "Attach Signal",
+                JigsawRole => "Pattern Check",
+                PilgrimRole => "Route Check",
+                CuratorRole => "Catalogue",
+                WayfinderRole => "Compass",
+                CollectorRole => "Collection",
+                MetronomeRole => "Rhythm Check",
+                CartoucheRole => "Symbol Check",
+                LighthouseRole => "Signal Check",
+                WeathervaneRole => "Forecast",
+                PuzzlewrightRole => "Logic Check",
+                TimeCapsuleRole => "Compare Snapshot",
+                NomadRole => "Itinerary",
+                _ => "Polus Ability"
+            };
         }
     }
 
-    public override float Cooldown => 30f;
-    public override int MaxUses => 1;
+    public override float Cooldown => 25f;
+    public override int MaxUses => 0;
     public override LoadableAsset<Sprite> Sprite => MiraAssets.CrewmateFile;
     public override MiraKeybind? Keybind => MiraGlobalKeybinds.SecondaryAbility;
 
@@ -35,7 +67,6 @@ public sealed class PolusRoleAbilityButton : CustomActionButton
     protected override void OnClick()
     {
         var player = PlayerControl.LocalPlayer;
-        if (player != null)
-            PolusRoleEvents.ActivateRoleAbility(player);
+        if (player != null) PolusRoleEvents.ActivateRoleAbility(player);
     }
 }
