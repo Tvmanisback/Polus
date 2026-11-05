@@ -1,4 +1,4 @@
-using System.Collections;
+using Polus.MiraApi.Android;\nusing System.Collections;
 using System.Reflection;
 using System.Text.Json;
 using HarmonyLib;
@@ -22,7 +22,7 @@ public sealed class PolusAndroidMod : MelonMod
     private static bool _choiceMade;
     private static bool _moddedMode;
     private static bool _panelOpen;
-    private static bool _meetingOpen;
+    private static bool _meetingOpen;\n    private static int _meetingNumber;
     private static string _status = "Choose a mode to continue.";
     private static Rect _panel = new(18, 70, 330, 420);
     private static string _modeFile = "";
@@ -191,13 +191,13 @@ public sealed class PolusAndroidMod : MelonMod
         {
             var enabled = _catalog.ToDictionary(r => r.Id, _ => true, StringComparer.OrdinalIgnoreCase);
             var settings = HostSettingsValidator.Validate(new HostSettings(true, 3, false, enabled));
-            _hostRuntime = new RoleMatchRuntime(true);
+            _hostRuntime = new RoleMatchRuntime(true);\n            MiraApi.Instance.ResetMatch();\n            _meetingNumber = 0;
             var assignments = _hostRuntime.StartMatch(players.Select(p => new PlayerSlot(p)).ToArray(),
                 _catalog, settings, impostorCount: 1, neutralCount: 0);
             lock (StateLock)
             {
                 AssignedRoles.Clear();
-                foreach (var item in assignments) AssignedRoles[item.PlayerId] = item.Role;
+                foreach (var item in assignments)\n                {\n                    AssignedRoles[item.PlayerId] = item.Role;\n                    if (MiraApi.Instance.Roles.TryGet(item.Role.Id, out var miraRole))\n                        MiraApi.Instance.Events.Publish(new MiraRoleAssignedEvent(item.PlayerId, miraRole));\n                }
             }
             _status = $"Assigned {assignments.Count} host-tracked roles. Only the host runs Polus.";
         }
@@ -257,7 +257,7 @@ public sealed class PolusAndroidMod : MelonMod
         }
     }
 
-    private static void MeetingEnding() => _meetingOpen = false;
+    private static void MeetingEnding()\n    {\n        _meetingOpen = false;\n        MiraApi.Instance.Events.Publish(new MiraMeetingEndedEvent(_meetingNumber));\n    }
 
     private static void TaskCompletedPostfix(object __instance, object[] __args)
     {
@@ -268,7 +268,7 @@ public sealed class PolusAndroidMod : MelonMod
             var taskType = __args?.FirstOrDefault()?.ToString() ?? "task";
             var transform = GetMember(__instance, "transform");
             var position = transform == null ? Vector3.zero : (Vector3)(GetMember(transform, "position") ?? Vector3.zero);
-            AndroidRoleMechanics.RecordTask(playerId, position, taskType);
+            AndroidRoleMechanics.RecordTask(playerId, position, taskType);\n            MiraApi.Instance.Events.Publish(new MiraTaskCompletedEvent(playerId, taskType));
         }
         catch (Exception ex) { MelonLogger.Warning("Task progress hook failed: " + ex.Message); }
     }
@@ -294,7 +294,7 @@ public sealed class PolusAndroidMod : MelonMod
         return result.Distinct().ToList();
     }
 
-    private static object? GetPlayerById(byte playerId)
+    internal static object? GetPlayerForApi(byte playerId) => GetPlayerById(playerId);\n    internal static object? GetMemberForApi(object target, string name) => GetMember(target, name);\n\n    private static object? GetPlayerById(byte playerId)
     {
         var type = AccessTools.TypeByName("PlayerControl");
         var collection = type == null ? null : GetStaticMember(type, "AllPlayerControls");
