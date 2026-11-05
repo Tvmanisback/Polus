@@ -71,7 +71,7 @@ public sealed class PolusRoleAbilityButton : CustomActionButton
         PolusRoleMechanics.EndTimedEffects();
         var player = PlayerControl.LocalPlayer;
         if (player == null) return;
-        foreach (var sprite in player.cosmetics.GetComponentsInChildren<SpriteRenderer>(true))
+        foreach (var sprite in player.cosmetics.transform.GetComponentsInChildren<SpriteRenderer>(true))
             sprite.color = Color.white;
     }
 
