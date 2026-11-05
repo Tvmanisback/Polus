@@ -15,14 +15,12 @@ public static class PolusRoleEvents
 {
     private static readonly ConcurrentDictionary<byte, int> CompletedTasks = new();
     private static readonly ConcurrentDictionary<byte, byte> NeutralWinsTriggered = new();
-    private static readonly ConcurrentDictionary<byte, byte> BonusVotePending = new();
 
     [RegisterEvent]
     public static void OnIntroBegin(IntroBeginEvent ev)
     {
         CompletedTasks.Clear();
         NeutralWinsTriggered.Clear();
-        BonusVotePending.Clear();
         PolusRoleMechanics.Reset();
     }
 
@@ -41,9 +39,11 @@ public static class PolusRoleEvents
         foreach (var player in PlayerControl.AllPlayerControls.ToArray())
         {
             if (player == null || player.Data == null) continue;
-            PolusRoleMechanics.RecordMeeting(player);
-            if (BonusVotePending.TryRemove(player.PlayerId, out _))
+            var tasksSinceMeeting = GetCompletedTaskCount(player.PlayerId);
+            if (PolusRoleMechanics.ShouldGrantMeetingVote(player, tasksSinceMeeting))
                 player.GetVoteData().IncreaseRemainingVotes(1);
+            PolusRoleMechanics.RecordMeeting(player);
+            if (player.Data.Role is MediatorRole) CompletedTasks[player.PlayerId] = 0;
         }
     }
 
@@ -56,7 +56,6 @@ public static class PolusRoleEvents
         return activated;
     }
 
-    public static void QueueBonusVote(byte playerId) => BonusVotePending[playerId] = 0;
 
     private static void CheckNeutralWin(PlayerControl player)
     {
