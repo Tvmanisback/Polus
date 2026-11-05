@@ -30,7 +30,7 @@ public static class PolusRoleEvents
     public static void OnTaskCompleted(CompleteTaskEvent ev)
     {
         if (ev.Player == null || ev.Player.Data == null) return;
-        var count = CompletedTasks.AddOrUpdate(ev.Player.PlayerId, 1, (_, current) => current + 1);
+        CompletedTasks.AddOrUpdate(ev.Player.PlayerId, 1, (_, current) => current + 1);
         PolusRoleMechanics.RecordTask(ev.Player, ev.Task.TaskType.ToString());
         CheckNeutralWin(ev.Player);
     }
@@ -42,16 +42,6 @@ public static class PolusRoleEvents
         {
             if (player == null || player.Data == null) continue;
             PolusRoleMechanics.RecordMeeting(player);
-            if (player.Data.Role is AuditorRole)
-                player.GetVoteData().IncreaseRemainingVotes(1);
-            else if (player.Data.Role is MediatorRole &&
-                     CompletedTasks.TryGetValue(player.PlayerId, out var completed) &&
-                     completed >= 3)
-            {
-                player.GetVoteData().IncreaseRemainingVotes(1);
-                CompletedTasks[player.PlayerId] = 0;
-            }
-
             if (BonusVotePending.TryRemove(player.PlayerId, out _))
                 player.GetVoteData().IncreaseRemainingVotes(1);
         }
