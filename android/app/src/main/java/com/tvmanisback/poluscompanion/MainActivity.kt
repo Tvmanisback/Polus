@@ -2,6 +2,7 @@ package com.tvmanisback.poluscompanion
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -17,6 +18,8 @@ import java.io.File
 import java.util.zip.ZipFile
 
 private const val AMONG_US_PACKAGE = "com.innersloth.spacemafia"
+private const val LEMONLOADER_INSTALLER_PACKAGE = "com.lavagang.melonloader.installer"
+private const val LEMONLOADER_SOURCE_URL = "https://github.com/LemonLoader/MelonLoaderInstaller"
 
 data class GameInstall(
     val installed: Boolean,
@@ -34,31 +37,61 @@ data class GameInstall(
 
 class MainActivity : ComponentActivity() {
     private var gameInstall by mutableStateOf<GameInstall?>(null)
+    private var lemonLoaderInstalled by mutableStateOf(false)
     private var statusMessage by mutableStateOf("Run setup to inspect the installed Among Us build.")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        refreshLemonLoaderStatus()
         setContent {
             MaterialTheme {
                 PolusScreen(
                     gameInstall = gameInstall,
+                    lemonLoaderInstalled = lemonLoaderInstalled,
                     statusMessage = statusMessage,
                     onSetup = { runSetup() },
-                    onPatchCheck = { runPatchPreflight() }
+                    onPatchCheck = { runPatchPreflight() },
+                    onOpenLemonLoader = { openLemonLoader() }
                 )
             }
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        refreshLemonLoaderStatus()
+    }
+
+    private fun refreshLemonLoaderStatus() {
+        lemonLoaderInstalled = try {
+            packageManager.getPackageInfo(LEMONLOADER_INSTALLER_PACKAGE, 0)
+            true
+        } catch (_: PackageManager.NameNotFoundException) {
+            false
+        }
+    }
+
+    private fun openLemonLoader() {
+        val launchIntent = packageManager.getLaunchIntentForPackage(LEMONLOADER_INSTALLER_PACKAGE)
+        if (launchIntent != null) {
+            startActivity(launchIntent)
+            statusMessage = "Opened LemonLoader Installer. Select Among Us there and follow its patch prompts."
+        } else {
+            statusMessage = "LemonLoader Installer is not installed. Opening its source repository."
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(LEMONLOADER_SOURCE_URL)))
+        }
+    }
+
     private fun runSetup() {
         gameInstall = inspectAmongUs()
+        refreshLemonLoaderStatus()
         statusMessage = when {
             Build.VERSION.SDK_INT < Build.VERSION_CODES.O ->
                 "Android 8.0 or newer is required by the current LemonLoader Android runtime profile."
             gameInstall?.installed != true ->
                 "Among Us was not found. Install the official game, then run setup again."
             else ->
-                "Among Us detected. Setup only inspected the installed APK; no game files were changed."
+                "Among Us detected. Polus inspected the installed APK; it has not modified the game."
         }
     }
 
@@ -71,7 +104,7 @@ class MainActivity : ComponentActivity() {
             !game.hasIl2Cpp -> "The installed APK set does not contain libil2cpp.so in the expected ARM64 location."
             !game.hasUnityMain -> "The installed APK set does not contain libmain.so in the expected ARM64 location."
             !game.hasMetadata -> "Unity global-metadata.dat was not found in the inspected APK set."
-            else -> "Basic LemonLoader prerequisites detected. This is not a completed patch: game-specific Interop generation and APK injection/signing are still required."
+            else -> "Basic LemonLoader prerequisites detected. The external installer still performs game-specific patching; this check does not guarantee Among Us compatibility."
         }
     }
 
@@ -97,7 +130,7 @@ class MainActivity : ComponentActivity() {
                         metadata = metadata || apk.getEntry("assets/bin/Data/Managed/Metadata/global-metadata.dat") != null
                     }
                 } catch (_: Exception) {
-                    // A split may not be a readable ZIP on some vendor builds; continue checking the remaining APKs.
+                    // Continue checking remaining APK splits.
                 }
             }
 
@@ -121,9 +154,11 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun PolusScreen(
     gameInstall: GameInstall?,
+    lemonLoaderInstalled: Boolean,
     statusMessage: String,
     onSetup: () -> Unit,
-    onPatchCheck: () -> Unit
+    onPatchCheck: () -> Unit,
+    onOpenLemonLoader: () -> Unit
 ) {
     Surface(Modifier.fillMaxSize()) {
         Column(
@@ -132,7 +167,7 @@ private fun PolusScreen(
         ) {
             Text("POLUS", style = MaterialTheme.typography.displaySmall)
             Text("Android setup & patcher", style = MaterialTheme.typography.titleMedium)
-            Text("Inspect the installed Among Us build and prepare it for the Android Polus loader.")
+            Text("Prepare the installed Among Us build and hand off patching to LemonLoader.")
             HorizontalDivider()
 
             Text("1. Detect Among Us", style = MaterialTheme.typography.titleLarge)
@@ -152,30 +187,36 @@ private fun PolusScreen(
             Text(statusMessage, color = MaterialTheme.colorScheme.secondary)
 
             HorizontalDivider()
-            Text("2. LemonLoader compatibility", style = MaterialTheme.typography.titleLarge)
-            Text("Checks the installed APK set for the Android ARM64 Unity IL2CPP layout used by LemonLoader. Passing these checks does not prove the game is compatible; matching Interop assemblies and a successful test launch are still required.")
-            Button(
+            Text("2. LemonLoader", style = MaterialTheme.typography.titleLarge)
+            Text(
+                if (lemonLoaderInstalled)
+                    "LemonLoader Installer is installed. Open it to select Among Us and run its patch process."
+                else
+                    "LemonLoader Installer is not detected. Open the project source to get the installer, then return here."
+            )
+            Button(onClick = onOpenLemonLoader, modifier = Modifier.fillMaxWidth()) {
+                Text(if (lemonLoaderInstalled) "Open LemonLoader Installer" else "Get LemonLoader Installer")
+            }
+            Text(
+                "Patching is handled by the official separate installer, not by Polus itself. Its documented on-device flow may remove Among Us app data. Back up anything important first; do not assume OBB or save data will be preserved.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+
+            HorizontalDivider()
+            Text("3. Compatibility check", style = MaterialTheme.typography.titleLarge)
+            Text("Checks the installed APK set for an ARM64 Unity IL2CPP layout. Passing does not guarantee that this specific Among Us build is supported.")
+            OutlinedButton(
                 onClick = onPatchCheck,
                 enabled = gameInstall?.installed == true,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Check patch requirements")
+                Text("Check Among Us requirements")
             }
 
             HorizontalDivider()
-            Text("3. Install Polus", style = MaterialTheme.typography.titleLarge)
-            Text("The Android LemonLoader patch pipeline and Android Polus game plugin are not integrated yet. Polus will not replace the installed game or show a success message until the patch, signature-preserving install, and first launch are verified.")
-            OutlinedButton(
-                onClick = {},
-                enabled = false,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Patch installed Among Us — integration required")
-            }
-
-            HorizontalDivider()
-            Text("4. In-game mode selector", style = MaterialTheme.typography.titleLarge)
-            Text("The planned selector belongs inside Among Us: Vanilla starts without Polus gameplay features; Modded loads the Polus Android plugin. It must be implemented as a Unity-side plugin, not as a separate launcher screen.")
+            Text("4. Polus in-game mode selector", style = MaterialTheme.typography.titleLarge)
+            Text("The Vanilla / Polus Modded selector is not implemented yet. It requires a separate Android-compatible Unity plugin built against the exact Among Us game version and loaded by LemonLoader.")
         }
     }
 }
