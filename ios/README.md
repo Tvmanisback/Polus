@@ -23,6 +23,9 @@ The host selects a mode in the Among Us chat:
 - /hotpotato — choose Hot Potato.
 - /infection — choose Infection.
 - /hideandseek — choose Hide & Seek.
+- /copsandrobbers — choose Cops & Robbers.
+- /randomchaos — randomize lobby settings for the round.
+- /classic — restore standard vanilla settings.
 - /mode status — show the selected mode.
 - /mode off — disable Polus mode and restore the lobby settings.
 - /help — show commands.
@@ -31,8 +34,11 @@ During a round:
 - Hot Potato chooses a random carrier. The carrier can use /pass player when the vanilla chat is available.
 - Infection chooses a random patient zero. Infected players can use /infect player when chat is available.
 - Hide & Seek marks the impostor as seeker and applies the hide-and-seek lobby settings; normal task/elimination win conditions remain in use.
+- Cops & Robbers marks the impostor as cop. The cop can use /arrest player; arrested robbers can use /escape. Vanilla clients cannot be forced into a movement lock, so arrest is a visible role marker.
+- Random Chaos rolls a new combination of impostor count, kill cooldown, emergency meetings, vision, and task counts each round.
+- Classic restores the original lobby settings and applies no Polus mode modifiers.
 
-These commands require the normal Among Us chat to be available. They do not create custom HUD buttons or client-side UI. The first two modes use chat-based passing/infection, not automatic touch detection.
+These commands require the normal Among Us chat to be available. They do not create custom HUD buttons or client-side UI. Hot Potato and Infection use chat-based passing/infection, not automatic touch detection. Cops & Robbers uses chat-based arrest/escape markers; vanilla clients do not expose server-side movement locking.
 
 ## Region file
 
