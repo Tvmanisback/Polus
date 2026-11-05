@@ -13,6 +13,8 @@ public sealed class RoleEffectEngine
         public int Tasks;
         public int Progress;
         public int Snapshot;
+        public int TasksAtLastMeeting;
+        public int TasksThisMeeting;
         public int Streak;
         public int Chain;
         public string LastTask = "";
@@ -140,9 +142,9 @@ public sealed class RoleEffectEngine
             if (s.MeetingActionUsed) return Reject("already_used", "Meeting ability already used this meeting.");
             command = s.RoleId switch
             {
-                "auditor" => Cmd("meeting_audit", $"Audit: {s.Tasks - s.Snapshot} tasks since checkpoint.", s.Tasks - s.Snapshot),
-                "mediator" when s.Tasks >= 3 => Cmd("meeting_bonus_vote", "Mediator earned a bonus vote.", 1),
-                "beaconist" when s.Tasks >= 2 => Cmd("meeting_bonus_vote", "Beaconist earned a bonus vote.", 1),
+                "auditor" when s.TasksThisMeeting > 0 => Cmd("meeting_audit", $"Audit: {s.TasksThisMeeting} tasks since the previous meeting.", s.TasksThisMeeting),
+                "mediator" when s.TasksThisMeeting >= 3 => Cmd("meeting_bonus_vote", "Mediator earned a bonus vote.", 1),
+                "beaconist" when s.TasksThisMeeting >= 2 => Cmd("meeting_bonus_vote", "Beaconist earned a bonus vote.", 1),
                 "calibrator" when s.Streak >= 2 => Cmd("meeting_bonus_vote", "Calibrator earned a bonus vote.", 1),
                 "signalwright" when s.Chain >= 2 => Cmd("meeting_bonus_vote", "Signalwright earned a bonus vote.", 1),
                 "broker" => Cmd("meeting_bonus_vote", "Broker earned a bonus vote.", 1),
@@ -150,6 +152,7 @@ public sealed class RoleEffectEngine
             };
             if (command.Kind == "none") return Reject("not_ready", "This role has no meeting action ready.");
             s.MeetingActionUsed = true;
+            if (s.RoleId is "auditor" or "mediator" or "beaconist") s.Snapshot = s.Tasks;
             return new RoleActionResult(true, "accepted", command.Message);
         }
     }
@@ -163,9 +166,10 @@ public sealed class RoleEffectEngine
             foreach (var s in states.Values)
             {
                 s.MeetingActionUsed = false;
+                s.TasksThisMeeting = s.Tasks - s.TasksAtLastMeeting;
+                s.TasksAtLastMeeting = s.Tasks;
                 s.Ledger.Add("Meeting");
                 if (s.Ledger.Count > 40) s.Ledger.RemoveAt(0);
-                if (s.RoleId is "auditor" or "beaconist" or "timecapsule") s.Snapshot = s.Tasks;
             }
         }
     }
@@ -200,7 +204,7 @@ public sealed class RoleEffectEngine
             case "courier": return Cmd("delivery_ledger", $"Deliveries: {s.Tasks}.", s.Tasks);
             case "archivist": return Cmd("event_ledger", $"Archive entries: {s.Ledger.Count}.", s.Ledger.Count);
             case "beaconist": return Cmd("beacon_status", $"Beacon charge: {s.Tasks / 2}.", s.Tasks / 2);
-            case "mediator": return Cmd("mediation_status", $"Mediation progress: {s.Tasks}/3 tasks.", s.Tasks);
+            case "mediator": return Cmd("mediation_status", $"Mediation progress: {s.TasksThisMeeting}/3 tasks this round.", s.TasksThisMeeting);
             case "calibrator": return Cmd("calibration_status", $"Matching task streak: {s.Streak}.", s.Streak);
             case "signalwright": return Cmd("signal_chain_status", $"Different-task chain: {s.Chain}.", s.Chain);
             case "timekeeper": case "timecapsule": case "ledgerist":
