@@ -49,8 +49,14 @@ jobs:
         id: apk
         shell: bash
         run: |
-          APK_PATH="$(find android/Polus.Android/bin/Release/net9.0-android35.0 -type f -name '*.apk' | head -n 1)"
-          test -n "$APK_PATH"
+          APK_PATH="$(find android/Polus.Android/bin/Release/net9.0-android35.0 -type f \( -name '*-Signed.apk' -o -name '*-signed.apk' \) | sort | tail -n 1)"
+          if [ -z "$APK_PATH" ]; then
+            echo "No signed APK was produced. Refusing to select an unsigned intermediate APK."
+            find android/Polus.Android/bin/Release/net9.0-android35.0 -type f -name '*.apk' -print
+            exit 1
+          fi
+          test -s "$APK_PATH"
+          echo "Using signed APK: $APK_PATH"
           echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
       - name: Verify release APK signature
         shell: bash
