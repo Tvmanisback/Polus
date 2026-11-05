@@ -11,7 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\RoleCore\RoleCore.csproj" />
     <PackageReference Include="BepInEx.Unity.IL2CPP" Version="6.0.0-be.788" />
-    <PackageReference Include="BepInEx.IL2CPP.MSBuild" Version="2.1.0-rc.1" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="NextBepLoader.BepInEx.IL2CPP.MSBuild" Version="2.1.0-dev-6" PrivateAssets="all" ExcludeAssets="runtime" />
     <PackageReference Include="AmongUs.GameLibs.Steam" Version="2026.9.29" PrivateAssets="all" />
     <PackageReference Include="Reactor" Version="2.5.1-ci.400" />
     <PackageReference Include="AllOfUs.MiraAPI" Version="0.6.0" />
