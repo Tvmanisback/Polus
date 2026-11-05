@@ -27,6 +27,6 @@
     <EmbeddedResource Include="..\Plugin\bin\Release\net6.0\Reactor.dll" LogicalName="Reactor.dll" />
     <EmbeddedResource Include="..\RoleCore\bin\Release\net6.0\Polus.RoleCore.dll" LogicalName="Polus.RoleCore.dll" />
     <EmbeddedResource Include="..\..\roles\roles.json" LogicalName="roles.json" />
-    <EmbeddedResource Include="..\\..\\assets\\patcher\\index.html" LogicalName="Polus.Patcher.index.html" />
+    <EmbeddedResource Include="..\..\assets\patcher\index.html" LogicalName="Polus.Patcher.index.html" />
   </ItemGroup>
 </Project>
