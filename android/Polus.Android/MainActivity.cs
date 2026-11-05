@@ -39,6 +39,8 @@ public sealed class MainActivity : Activity, IPatchLogger
         }, 250);
     }
 
+    internal void DispatchUiAction(string action) => RunOnUiThread(() => HandleUiAction(action));
+
     internal void HandleUiAction(string action)
     {
         switch (action)
@@ -256,8 +258,6 @@ public sealed class MainActivity : Activity, IPatchLogger
 }
 
 
-namespace Polus.Android;
-
 [Android.Runtime.Preserve(AllMembers = true)]
 public sealed class PolusAndroidBridge
 {
@@ -266,5 +266,5 @@ public sealed class PolusAndroidBridge
 
     [JavascriptInterface]
     [Export("action")]
-    public void Action(string action) => _activity.RunOnUiThread(() => _activity.HandleUiAction(action));
+    public void Action(string action) => _activity.DispatchUiAction(action);
 }
