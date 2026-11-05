@@ -26,7 +26,8 @@ public sealed class PolusAndroidMod : MelonMod
     private static bool _meetingOpen;
     private static int _meetingNumber;
     private static string _status = "Choose a mode to continue.";
-    private static Rect _panel = new(18, 70, 330, 420);
+    private static Rect _panel = new(18, 70, 380, 520);
+    private static Vector2 _optionsScroll;
     private static string _modeFile = "";
 
     public override void OnInitializeMelon()
@@ -41,7 +42,9 @@ public sealed class PolusAndroidMod : MelonMod
 
     public override void OnUpdate()
     {
-        if (Input.GetKeyDown(KeyCode.F8) && _choiceMade && _moddedMode)
+        if (MiraApi.Instance.Keybinds.TryGet("polus.menu", out var menuKey)
+            && Enum.TryParse<KeyCode>(menuKey, true, out var key)
+            && Input.GetKeyDown(key) && _choiceMade && _moddedMode)
             _panelOpen = !_panelOpen;
     }
 
@@ -101,6 +104,7 @@ public sealed class PolusAndroidMod : MelonMod
         GUILayout.Label(_status);
         GUILayout.Space(8);
         GUILayout.Label("Role options");
+        _optionsScroll = GUILayout.BeginScrollView(_optionsScroll, GUILayout.Height(190));
         foreach (var roleOption in _catalog)
         {
             var enabledKey = "role." + roleOption.Id + ".enabled";
@@ -113,6 +117,7 @@ public sealed class PolusAndroidMod : MelonMod
             var nextWeight = Mathf.RoundToInt(GUILayout.HorizontalSlider(weight, 0, 100));
             if (nextWeight != weight) MiraApi.Instance.Options.Set(weightKey, nextWeight);
         }
+        GUILayout.EndScrollView();
         GUILayout.Space(8);
         if (GUILayout.Button("Assign roles (host / private lobby)"))
             AssignRoles();
@@ -295,7 +300,9 @@ public sealed class PolusAndroidMod : MelonMod
 
     private static void GameEndedPostfix()
     {
-        MiraApi.Instance.Events.Publish(new MiraGameEndedEvent("Among Us game ended."));
+        var reason = MiraApi.Instance.GameEndConditions.TryEvaluate(out var customReason)
+            ? customReason : "Among Us game ended.";
+        MiraApi.Instance.Events.Publish(new MiraGameEndedEvent(reason));
     }
 
     private static void VoteCastPostfix(object[] __args)
