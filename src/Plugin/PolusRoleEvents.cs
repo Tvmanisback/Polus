@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using MiraAPI.Events;
 using MiraAPI.Events.Vanilla.Meeting;
+using MiraAPI.Events.Vanilla.Gameplay;
 using MiraAPI.Events.Vanilla.Player;
 using MiraAPI.GameEnd;
 using MiraAPI.Utilities;
@@ -13,6 +14,15 @@ public static class PolusRoleEvents
 {
     private static readonly ConcurrentDictionary<byte, int> CompletedTasks = new();
     private static readonly ConcurrentDictionary<byte, byte> NeutralWinsTriggered = new();
+
+    // IntroBeginEvent fires once for each new match. Clear per-match state here so
+    // task progress and neutral-win guards cannot leak into the next round.
+    [RegisterEvent]
+    public static void OnIntroBegin(IntroBeginEvent ev)
+    {
+        CompletedTasks.Clear();
+        NeutralWinsTriggered.Clear();
+    }
 
     [RegisterEvent]
     public static void OnTaskCompleted(CompleteTaskEvent ev)
