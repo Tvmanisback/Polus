@@ -175,6 +175,7 @@ public sealed class PolusAndroidMod : MelonMod
         PatchByName("MeetingHud", "CastVote", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(VoteCastPostfix)));
         PatchByName("EndGameManager", "Start", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(GameEndedPostfix)));
         PatchByName("PlayerControl", "CompleteTask", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(TaskCompletedPostfix)));
+        PatchByName("PlayerControl", "CheckMurder", prefix: AccessTools.Method(typeof(PolusAndroidMod), nameof(VanillaKillRequestPrefix)));
         _status = "Host-only mode active. Other players remain on unmodified clients.";
     }
 
@@ -310,6 +311,20 @@ public sealed class PolusAndroidMod : MelonMod
         }
     }
 
+
+
+    // Vanilla impostor clients already have a Kill button. On the host, consume
+    // that ordinary request and execute the assigned Polus role action instead.
+    private static bool VanillaKillRequestPrefix(object __instance, object[] __args)
+    {
+        if (!_moddedMode || !IsHost() || __instance == null) return true;
+        if (!TryGetByte(__instance, "PlayerId", out var playerId)) return true;
+        if (!AssignedRoles.TryGetValue(playerId, out var role)) return true;
+        var data = GetMember(__instance, "Data");
+        if (data == null || TryGetBool(data, "IsDead")) return false;
+        AcceptAbilityRequest(playerId, role.Id);
+        return false;
+    }
 
     private static void GameEndedPostfix()
     {
