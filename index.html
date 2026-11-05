@@ -23,7 +23,7 @@ footer{border-top:1px solid #ffffff17;padding:25px 0;color:var(--muted);font-siz
 <div class="downloads">
 <article class="platform"><div class="status">Available · v1.1.0</div><h3>Windows PC</h3><p>Download the standalone Polus patcher for the Steam version of Among Us. No ZIP extraction is required.</p><a class="button primary" href="https://github.com/Tvmanisback/Polus/releases/download/1.1.0/Polus.exe">Download Polus.exe ↗</a></article>
 <article class="platform"><div class="status">Available · v1.1.0</div><h3>Android</h3><p>Install the Polus Android patcher APK, then open it and follow its on-screen instructions. Android may ask you to approve app installation.</p><a class="button primary" href="https://github.com/Tvmanisback/Polus/releases/download/1.1.0/com.tvmanisback.poluscompanion.apk">Download Android APK ↗</a></article>
-<article class="platform"><div class="status soon">Experimental · region setup</div><h3>iOS</h3><p>Generate a custom Among Us region file for the Polus matchmaking endpoint. The server must already be running.</p><div class="ios-form"><label for="iosMatchmakingUrl">Public HTTPS matchmaking URL<input id="iosMatchmakingUrl" type="url" inputmode="url" placeholder="https://your-server.example" autocomplete="url"></label><button class="button primary" id="generateIosRegion" type="button">Create region.json</button><p class="ios-help" id="iosRegionStatus" aria-live="polite">On iPhone, this opens the iOS share sheet when supported. Choose Among Us only if it appears as an import target.</p></div></article>
+<article class="platform"><div class="status soon">Experimental · iOS deep link</div><h3>iOS</h3><p>Open Among Us and add Polus iOS to its server list. Enter the server's public IPv4 address and launch directly from this page.</p><div class="ios-form"><label for="iosServerIp">Server IPv4 address<input id="iosServerIp" type="text" inputmode="decimal" placeholder="203.0.113.10" autocomplete="off"></label><label for="iosServerPort">Server port<input id="iosServerPort" type="number" inputmode="numeric" min="1" max="65535" value="22023"></label><button class="button primary" id="launchIos" type="button">Open Among Us</button><p class="ios-help" id="iosLaunchStatus" aria-live="polite">Requires Among Us to be installed. The server address must be a reachable IPv4 address.</p></div></article>
 </div></div></section>
 <section><div class="wrap"><div class="section-title"><div class="eyebrow">INSTALLATION</div><h2>How to get started</h2><p>Close Among Us before changing its files.</p></div>
 <ol class="steps"><li><strong>Windows:</strong> Download <a href="https://github.com/Tvmanisback/Polus/releases/download/1.1.0/Polus.exe">Polus.exe (v1.1.0)</a> and run it directly.</li><li>Use Detect Steam, or Browse to select the folder containing <code>Among Us.exe</code>.</li><li>Choose Setup loader to install the required BepInEx IL2CPP files, then choose Install Polus.</li><li>Launch Among Us and check the BepInEx log if anything fails to load.</li><li><strong>Android:</strong> Download and install the <a href="https://github.com/Tvmanisback/Polus/releases/download/1.1.0/com.tvmanisback.poluscompanion.apk">Polus Android APK (v1.1.0)</a>, open the patcher, and follow its on-screen instructions.</li></ol>
@@ -35,57 +35,41 @@ footer{border-top:1px solid #ffffff17;padding:25px 0;color:var(--muted);font-siz
 <script>
 document.getElementById("year").textContent=new Date().getFullYear();
 
-const iosRegions = [
-  { "$type":"StaticHttpRegionInfo, Assembly-CSharp", "Name":"North America", "PingServer":"matchmaker.among.us", "Servers":[{"Name":"Http-1","Ip":"https://matchmaker.among.us","Port":443,"UseDtls":true,"Players":0,"ConnectionFailures":0}], "TranslateName":289 },
-  { "$type":"StaticHttpRegionInfo, Assembly-CSharp", "Name":"Europe", "PingServer":"matchmaker-eu.among.us", "Servers":[{"Name":"Http-1","Ip":"https://matchmaker-eu.among.us","Port":443,"UseDtls":true,"Players":0,"ConnectionFailures":0}], "TranslateName":290 },
-  { "$type":"StaticHttpRegionInfo, Assembly-CSharp", "Name":"Asia", "PingServer":"matchmaker-as.among.us", "Servers":[{"Name":"Http-1","Ip":"https://matchmaker-as.among.us","Port":443,"UseDtls":true,"Players":0,"ConnectionFailures":0}], "TranslateName":291 }
-];
+const launchButton = document.getElementById("launchIos");
+launchButton.addEventListener("click", () => {
+  const ipInput = document.getElementById("iosServerIp");
+  const portInput = document.getElementById("iosServerPort");
+  const status = document.getElementById("iosLaunchStatus");
+  const ip = ipInput.value.trim();
+  const port = Number(portInput.value);
 
-document.getElementById("generateIosRegion").addEventListener("click", async () => {
-  const input = document.getElementById("iosMatchmakingUrl");
-  const status = document.getElementById("iosRegionStatus");
-  let endpoint;
-  try {
-    endpoint = new URL(input.value.trim());
-    if (endpoint.protocol !== "https:" || !endpoint.hostname) throw new Error("Use a public HTTPS URL.");
-  } catch {
-    status.textContent = "Enter a valid public HTTPS matchmaking URL first.";
-    input.focus();
+  // Among Us' init deep link expects a numeric IP address, not a DNS hostname.
+  const ipv4 = /^(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|1?\\d?\\d)){3}$/;
+  if (!ipv4.test(ip)) {
+    status.textContent = "Enter the server's public IPv4 address (not a domain name).";
+    ipInput.focus();
+    return;
+  }
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    status.textContent = "Enter a valid port from 1 to 65535.";
+    portInput.focus();
     return;
   }
 
-  const host = endpoint.hostname;
-  const regions = [...iosRegions, {
-    "$type":"StaticHttpRegionInfo, Assembly-CSharp",
-    "Name":"Polus iOS",
-    "PingServer":host,
-    "Servers":[{"Name":"Polus iOS HTTPS","Ip":endpoint.origin,"Port":443,"UseDtls":false,"Players":0,"ConnectionFailures":0}],
-    "TranslateName":1003
-  }];
-  const data = JSON.stringify({"CurrentRegionIdx":3,"Regions":regions}, null, 2);
-  const file = new File([data], "region.json", {type:"application/json"});
-  try {
-    if (navigator.canShare && navigator.canShare({files:[file]})) {
-      await navigator.share({files:[file], title:"Polus iOS region", text:"Import region.json into Among Us if it offers that option."});
-      status.textContent = "Shared region.json. If Among Us did not appear in the share sheet, save the file and use your device's supported region-import method.";
-    } else {
-      const blobUrl = URL.createObjectURL(file);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = "region.json";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(blobUrl);
-      status.textContent = "Downloaded region.json. Open or import it using a method supported by your iOS version and Among Us.";
-    }
-  } catch (error) {
-    if (error && error.name === "AbortError") {
-      status.textContent = "Share cancelled. Tap Create region.json again when ready.";
-      return;
-    }
-    status.textContent = "Could not open the share sheet. Try again or use the server's make-region.sh script.";
-  }
+  const params = new URLSearchParams({
+    serverip: ip,
+    serverport: String(port),
+    servername: "Polus iOS",
+    usedtls: "false"
+  });
+  const deepLink = "amongus://init?" + params.toString();
+  status.textContent = "Opening Among Us with the Polus iOS server…";
+  window.location.href = deepLink;
+  // Keep a visible fallback in case the app is not installed or iOS blocks the handoff.
+  window.setTimeout(() => {
+    status.textContent = "If Among Us did not open, make sure it is installed and the server address and port are correct.";
+  }, 1800);
 });
+
 </script>
 </body></html>
