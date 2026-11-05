@@ -1,28 +1,44 @@
 # Polus Android
 
-Polus now contains a .NET Android host that references the vendored LemonLoader patch engine in `android/LemonLoader.Core`.
+Polus includes an Android ARM64 patcher app and a separate LemonLoader-based Among Us plugin.
 
-## Patch flow
+## Android patcher
 
 1. Install the official Among Us Android package (`com.innersloth.spacemafia`).
 2. Open Polus on an ARM64 Android device.
-3. Press **Patch installed Among Us**.
-4. Polus copies the installed base/split APKs into its private cache, downloads LemonLoader runtime data, and calls LemonLoader's `Patcher.Run()` pipeline directly.
-5. The patched APK parts are written to Polus's private cache under `cache/polus-lemonloader/output`.
+3. Select **Patch installed Among Us**.
+4. Polus copies the installed base and split APKs into its private cache, downloads the LemonLoader runtime payload, and runs the vendored patch pipeline.
+5. Review the generated APK parts in the patcher. The original installation is not silently removed.
+6. If you choose **Replace Among Us**, Android displays its own uninstall confirmation and then the install confirmation for the patched package.
 
-Polus does not open the separate LemonLoader Installer app and does not use Shizuku.
+The patcher does not use Shizuku. Replacing a Play Store-signed app with a differently signed build requires uninstalling the original first, which can remove local game data. Back up important data before proceeding.
 
-## Important installation limitation
+## In-game Android plugin
 
-The LemonLoader patch engine generates its own signing certificate. Android will not accept that output as an in-place update over the Play Store-signed Among Us package. This implementation deliberately leaves the original game installed and does not silently replace it. A user-approved uninstall/reinstall flow is still required to install the newly signed package and may affect game data/OBB handling.
+The Android plugin targets LemonLoader/MelonLoader on Android ARM64 Unity IL2CPP. When the plugin loads, the game displays a **Vanilla / Polus Modded** mode selector. The Modded mode enables the Polus host panel, role actions, meeting hooks, task events, and host-observed vote events.
 
-## Current limitations
+The Android MiraAPI compatibility surface provides:
 
-- The engine is called directly by the Android host; a user-facing export/install destination is not implemented yet.
-- Split APK layouts need device testing. LemonLoader's core patch pipeline signs the base and ARM64 library split; additional configuration splits are copied but require signing/validation before installation.
-- The Vanilla / Polus Modded in-game selector and Android Unity plugin are not implemented yet. The Windows BepInEx plugin is not Android-compatible.
-- A successful patch does not guarantee compatibility with every Among Us release.
+- Role, action-button, and meeting-button registries.
+- Role options and spawn-weight settings.
+- Plugin registration through `IMiraPlugin` and `MiraApi.RegisterPlugin`.
+- Match, role, task, meeting, vote, ability, and game-end events.
+- Modifier, game-end-condition, compatibility, color, asset, keybind, and local-settings registries.
+- Host-side role assignment and ability validation.
 
-## Build
+### Host-only behavior
 
-GitHub Actions builds the .NET Android app and uploads the APK as `Polus-Android-LemonLoader`.
+This Android implementation intentionally does not add a custom client RPC protocol. The host can track Polus roles and execute host-side actions, but vanilla clients do not receive custom role UI, role state, or role-specific effects. Vote hooks observe votes; they do not rewrite the game's vote result.
+
+This is an Android-native compatibility API, not a drop-in port of every upstream MiraAPI/BepInEx/Reactor feature. Upstream game patches, custom HUD rendering, cross-client role synchronization, and full custom win-condition integration still require Android-specific implementations.
+
+## Build and screenshot
+
+The `.github/workflows/android.yml` workflow builds the Android plugin and patcher APK, starts an Android emulator, launches the patcher, captures its UI as `polus-android-patcher.png`, and uploads the screenshot as the `Polus-Android-Patcher-Screenshot` artifact. The APK and plugin assemblies are uploaded separately.
+
+## Compatibility
+
+- Android ARM64 devices.
+- Unity IL2CPP game builds only.
+- The exact Among Us version and APK split layout must match the generated interop data and LemonLoader runtime.
+- A successful patch does not guarantee that every game release is compatible.
