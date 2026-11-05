@@ -1,29 +1,20 @@
-# Polus Android companion
+# Polus Android
 
-This is a separate Android companion app. It does not replace or modify the official Among Us installation.
+Polus Android is a companion app for checking whether a device can run the Android version of Among Us.
 
-## Current features
+## Setup compatibility checks
 
-- Google sign-in using Android Credential Manager.
-- Setup checks that the official Among Us Android package is installed.
-- Open launches the separately installed Among Us app.
-- Patch is intentionally disabled until an Android-compatible Polus plugin and patch implementation exist.
+- Requires Android 11 (API 30) or newer.
+- Checks that the official Among Us Android package (`com.innersloth.spacemafia`) is installed.
+- Checks that Android can launch Among Us.
+- Does not require Google sign-in, Play Games Services, a Google Cloud project, or a Play Console account.
+- Does not modify or replace the original Among Us installation.
 
-## Google sign-in configuration
+## Android patching status
 
-1. Create or select a project in Google Cloud Console.
-2. Configure the Google Identity / OAuth consent screen.
-3. Create an **Android OAuth client** for package name:
-   `com.tvmanisback.poluscompanion`
-4. Add the SHA-1 signing certificate fingerprint for the build you will distribute.
-5. Create a **Web application OAuth client** in the same project.
-6. Replace `YOUR_WEB_OAUTH_CLIENT_ID.apps.googleusercontent.com` in `app/src/main/java/com/tvmanisback/poluscompanion/MainActivity.kt` with that Web client ID.
+Android patching is not implemented yet. The existing Polus plugin targets Windows BepInEx IL2CPP x64. Those Windows assemblies are not Android-compatible and cannot be copied into the Android game.
 
-The Web client ID is public application configuration; never put a client secret in the Android app. A production service should validate the returned Google ID token on a trusted backend before treating the account as authenticated for server-side actions.
-
-## Google Play account limitation
-
-The app can ask the user to choose a Google account through Google sign-in. The user should select the same account they use in Play Store. Android does not provide a normal app with a way to take over Play Store's active session or force a separately installed game to use the selected account. Google sign-in also does not prove that the user owns Among Us.
+A real Android patch requires an Android-compatible Polus plugin and a compatible, supported Android loading/integration method. The app keeps the Patch control disabled until that payload exists; it will not report a fake successful patch.
 
 ## Build
 
