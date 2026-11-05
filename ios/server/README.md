@@ -41,6 +41,9 @@ The host selects the mode from normal Among Us chat:
 - /hotpotato
 - /infection
 - /hideandseek
+- /copsandrobbers
+- /randomchaos
+- /classic
 - /mode status
 - /mode off
 - /help
@@ -48,6 +51,8 @@ The host selects the mode from normal Among Us chat:
 Round commands:
 - /pass player — current Hot Potato carrier passes the marker to a player.
 - /infect player — an infected player adds a living player to the infected team.
+- /arrest player — the Cops & Robbers cop marks a robber as arrested.
+- /escape — an arrested robber clears their arrest marker.
 
 Commands only work when the vanilla client makes chat available. Hot Potato and Infection are command-driven in this first version; no touch-detection mechanic or custom client UI is claimed.
 
