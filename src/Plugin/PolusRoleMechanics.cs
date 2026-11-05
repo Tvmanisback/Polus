@@ -109,7 +109,7 @@ public static class PolusRoleMechanics
                 message = $"Route journal updated: {s.Progress} sectors mapped.";
                 break;
             case AuditorRole:
-                var audited = TakeSnapshot(player.PlayerId);
+                var audited = s.Tasks - s.Snapshot;
                 message = $"Audit checkpoint: {audited} task completions since the previous check.";
                 break;
             case RelayRole:
@@ -142,9 +142,11 @@ public static class PolusRoleMechanics
                 message = $"Signal chain: {s.Chain} consecutive different task types.";
                 break;
             case TimekeeperRole:
-            case TimeCapsuleRole:
                 var snapshot = TakeSnapshot(player.PlayerId);
                 message = $"Checkpoint comparison: {snapshot} tasks completed since the last snapshot.";
+                break;
+            case TimeCapsuleRole:
+                message = $"Capsule comparison: {s.Tasks - s.Snapshot} tasks completed since the last meeting checkpoint.";
                 break;
             case CounterfeiterRole:
                 s.Progress++;
@@ -266,7 +268,7 @@ public static class PolusRoleMechanics
         s.Ledger.Add("Meeting");
         if (s.Ledger.Count > 40) s.Ledger.RemoveAt(0);
         if (player.Data.Role is ArchivistRole) s.Progress = s.Ledger.Count;
-        if (player.Data.Role is AuditorRole or BeaconistRole) s.Snapshot = s.Tasks;
+        if (player.Data.Role is AuditorRole or BeaconistRole or TimeCapsuleRole) s.Snapshot = s.Tasks;
         if (player.Data.Role is CalibratorRole or SignalwrightRole)
         {
             s.Streak = 0;
