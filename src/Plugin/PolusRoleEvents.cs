@@ -98,12 +98,10 @@ public static class PolusRoleEvents
     private static bool ActivateRoleAbility(PlayerControl player, bool vanillaButton)
     {
         if (player == null || AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost) return false;
-        var decision = SharedEffects.TryUseAbility(player.PlayerId, DateTimeOffset.UtcNow, 25, out _);
+        var decision = SharedEffects.TryUseAbility(player.PlayerId, DateTimeOffset.UtcNow, 25, out var command);
         if (!decision.Accepted) return false;
-        var activated = vanillaButton
-            ? PolusRoleMechanics.ActivateVanillaRoleAbility(player)
-            : PolusRoleMechanics.ActivateModdedRoleAbility(player);
-        if (activated && player != null) CheckNeutralWin(player);
+        var activated = PolusRoleEffectAdapter.Execute(player, command);
+        if (activated) CheckNeutralWin(player);
         return activated;
     }
 
