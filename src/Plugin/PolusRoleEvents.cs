@@ -175,7 +175,7 @@ public static class PolusRoleEvents
                     {
                         args[i] = (byte)0;
                     }
-                    else if (parameterType.IsOptional)
+                    else if (parameters[i].IsOptional)
                     {
                         args[i] = parameters[i].DefaultValue;
                     }
