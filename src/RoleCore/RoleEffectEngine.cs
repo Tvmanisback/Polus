@@ -10,6 +10,7 @@ public sealed class RoleEffectEngine
     private sealed class State
     {
         public string RoleId = "";
+        public RoleTeam Team;
         public int Tasks;
         public int Progress;
         public int Snapshot;
@@ -52,7 +53,7 @@ public sealed class RoleEffectEngine
             {
                 if (states.ContainsKey(assignment.PlayerId))
                     throw new InvalidOperationException("A player cannot receive multiple primary roles.");
-                states.Add(assignment.PlayerId, new State { RoleId = Normalize(assignment.Role.Id) });
+                states.Add(assignment.PlayerId, new State { RoleId = Normalize(assignment.Role.Id), Team = assignment.Role.Team });
             }
         }
     }
@@ -179,6 +180,21 @@ public sealed class RoleEffectEngine
         lock (gate) return states.TryGetValue(playerId, out var s) ? s.Progress : 0;
     }
 
+    public IReadOnlyList<NeutralObjectiveCompletion> GetCompletedNeutralObjectives(
+        IReadOnlyDictionary<string, int> requiredProgress)
+    {
+        lock (gate)
+        {
+            return states
+                .Where(pair => pair.Value.Team == RoleTeam.Neutral
+                    && requiredProgress.TryGetValue(pair.Value.RoleId, out var required)
+                    && required > 0 && pair.Value.Progress >= required)
+                .Select(pair => new NeutralObjectiveCompletion(
+                    pair.Key, pair.Value.RoleId, pair.Value.Progress, requiredProgress[pair.Value.RoleId]))
+                .ToArray();
+        }
+    }
+
     public bool HasMeetingAbility(byte playerId)
     {
         lock (gate)
@@ -260,3 +276,5 @@ public sealed record RoleEffectCommand(string Kind, string Message, int Value, f
 {
     public static RoleEffectCommand None { get; } = new("none", "", 0);
 }
+
+public sealed record NeutralObjectiveCompletion(byte PlayerId, string RoleId, int Progress, int Required);
