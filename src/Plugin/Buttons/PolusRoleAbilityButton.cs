@@ -56,13 +56,23 @@ public sealed class PolusRoleAbilityButton : CustomActionButton
     }
 
     public override float Cooldown => 25f;
+    public override float EffectDuration => PlayerControl.LocalPlayer?.Data?.Role is BlackoutArtistRole or WeathermakerRole ? 8f : 0f;
     public override int MaxUses => 0;
     public override LoadableAsset<Sprite> Sprite => MiraAssets.CrewmateFile;
     public override MiraKeybind? Keybind => MiraGlobalKeybinds.SecondaryAbility;
 
     public override bool Enabled(RoleBehaviour? role) =>
         (role is PolusCrewmateRole || role is PolusImpostorRole || role is PolusNeutralRole) &&
+        role is not QuartermasterRole &&
         PlayerControl.LocalPlayer != null;
+
+    public override void OnEffectEnd()
+    {
+        var player = PlayerControl.LocalPlayer;
+        if (player == null) return;
+        foreach (var sprite in player.cosmetics.GetComponentsInChildren<SpriteRenderer>(true))
+            sprite.color = Color.white;
+    }
 
     protected override void OnClick()
     {
