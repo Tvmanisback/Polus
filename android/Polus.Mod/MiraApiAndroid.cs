@@ -130,7 +130,7 @@ public sealed class MiraButtonRegistry
 public sealed class MiraMeetingRegistry
 {
     private readonly Dictionary<string, MiraMeetingButton> _buttons = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<(byte Player, string Button)> _used = new();
+    private readonly HashSet<(byte Player, string Button, int Meeting)> _used = new();
     public IReadOnlyCollection<MiraMeetingButton> All => _buttons.Values;
     public void Register(MiraMeetingButton button) => _buttons[button.Id] = button;
     public bool TryUse(string id, MiraMeetingContext context, out string result)
@@ -138,7 +138,7 @@ public sealed class MiraMeetingRegistry
         result = "Meeting button is not registered.";
         if (!context.IsHost) { result = "Only the host can use Polus meeting abilities."; return false; }
         if (!_buttons.TryGetValue(id, out var button)) return false;
-        if (!_used.Add((context.PlayerId, id))) { result = "This meeting ability was already used."; return false; }
+        if (!_used.Add((context.PlayerId, id, context.MeetingNumber))) { result = "This meeting ability was already used."; return false; }
         result = button.OnClick(context);
         return true;
     }
