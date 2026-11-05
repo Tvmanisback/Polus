@@ -130,12 +130,27 @@ private fun PolusScreen(
             Text("2. Setup", style = MaterialTheme.typography.titleLarge)
             Text("Checks for the official Among Us Android app. The original installation is not modified.")
             Button(
+                enabled = !busy,
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                    installed = isAmongUsInstalled()
-                    setupComplete = installed
+                    if (account == null) {
+                        busy = true
+                        error = null
+                        onGoogleSignIn { email, message ->
+                            account = email
+                            error = message
+                            busy = false
+                            if (email != null) {
+                                installed = isAmongUsInstalled()
+                                setupComplete = installed
+                            }
+                        }
+                    } else {
+                        installed = isAmongUsInstalled()
+                        setupComplete = installed
+                    }
                 }
-            ) { Text("Setup") }
+            ) { Text(if (busy) "Setting up…" else "Setup") }
             Text(
                 if (setupComplete) "Setup complete — Among Us was found."
                 else if (installed) "Among Us is installed. Press Setup to check it."
