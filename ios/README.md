@@ -36,13 +36,17 @@ These commands require the normal Among Us chat to be available. They do not cre
 
 ## Region file
 
-The region generator creates a file named exactly **region.json**:
+## iOS website launcher
 
-    bash ios/server/make-region.sh https://YOUR-PUBLIC-HTTPS-MATCHMAKING-HOST
+The main website's iOS card uses Among Us's supported mobile deep link:
 
-By default it writes to ios/config/region.json. The HTTPS URL must point to the Impostor HTTP matchmaking service. The game server's UDP address is set separately in the server config.
+    amongus://init?serverip=YOUR_PUBLIC_IPV4&serverport=22023&servername=Polus_iOS&usedtls=false
 
-The website also has a region.json generator in its iOS download card. It can share the file through the iOS share sheet when supported. A website cannot write directly into Among Us's private app storage, and there is no verified Among Us iOS deep-link contract here that can silently import the file and launch the game. If Among Us appears as a share target, select it; otherwise use the region import method supported by your device.
+Enter the server's public IPv4 address and port on the main Polus website, then tap **Open Among Us**. iOS opens Among Us and adds the Polus iOS custom region. The deep link requires a numeric IP address (not a DNS hostname) and custom servers must use `usedtls=false`.
+
+For a same-Wi-Fi test, enter the server computer's LAN IPv4 address. For internet play, the server must have a reachable public IPv4 address and both TCP matchmaking and UDP game traffic must be forwarded on the configured port. The website cannot make a private or temporary CI runner publicly reachable.
+
+The manual `make-region.sh` script remains available for alternate region-file testing; it writes a file named exactly `region.json` to `ios/config/region.json` by default.
 
 ## Codespaces testing
 
