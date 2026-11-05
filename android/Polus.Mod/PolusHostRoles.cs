@@ -9,6 +9,7 @@ namespace Polus.AndroidMod;
 /// </summary>
 internal static class PolusHostRoles
 {
+    internal sealed record ActionButton(string Label);
     internal sealed record HostRole(string Id, string Name, RoleTeam Team, string Description,
         int CooldownSeconds, string AbilityLabel);
     private static readonly Dictionary<string, HostRole> Roles = new(StringComparer.OrdinalIgnoreCase);
@@ -55,8 +56,8 @@ internal static class PolusHostRoles
     public static bool TryGetKeybind(string id, out string key) =>
         Keybinds.TryGetValue(id, out key!);
 
-    public static string? GetActionButton(string roleId) =>
-        Roles.TryGetValue(roleId, out var role) ? role.AbilityLabel : null;
+    public static ActionButton? GetActionButton(string roleId) =>
+        Roles.TryGetValue(roleId, out var role) ? new ActionButton(role.AbilityLabel) : null;
 
     public static bool HasMeetingButton(string roleId) =>
         roleId is "auditor" or "mediator" or "beaconist" or "calibrator" or "signalwright" or "broker";
