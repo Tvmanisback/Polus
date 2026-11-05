@@ -30,7 +30,7 @@ public sealed class MainActivity : Activity, IPatchLogger
         root.SetPadding(36, 48, 36, 24);
         var title = new TextView(this) { Text = "POLUS", TextSize = 32, Gravity = global::Android.Views.GravityFlags.Center };
         root.AddView(title);
-        root.AddView(new TextView(this) { Text = "LemonLoader Android patcher", TextSize = 18, Gravity = Android.Views.GravityFlags.Center });
+        root.AddView(new TextView(this) { Text = "LemonLoader Android patcher", TextSize = 18, Gravity = global::Android.Views.GravityFlags.Center });
         _status = new TextView(this) { TextSize = 14 };
         root.AddView(_status);
         _patch = new Button(this) { Text = "Patch installed Among Us" };
@@ -185,7 +185,7 @@ public sealed class MainActivity : Activity, IPatchLogger
                 throw new InvalidOperationException("The patched base.apk is missing.");
 
             var installer = PackageManager!.PackageInstaller;
-            var parameters = new PackageInstaller.SessionParams(1);
+            var parameters = new PackageInstaller.SessionParams(PackageInstallMode.FullInstall);
             parameters.SetAppPackageName(GamePackage);
             var sessionId = installer.CreateSession(parameters);
             using (var session = installer.OpenSession(sessionId))
