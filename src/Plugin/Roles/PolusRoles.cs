@@ -239,7 +239,7 @@ public sealed class CuratorRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 4;
     public override string IdPart => "curator";
     public override string RoleName => "Curator";
-    public override string RoleDescription => "Catalogues task types and new map sectors as unique collection entries.";
+    public override string RoleDescription => "Collects one artifact for each distinct task type completed.";
 }
 
 public sealed class WayfinderRole : PolusNeutralRole
@@ -263,7 +263,7 @@ public sealed class MetronomeRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 6;
     public override string IdPart => "metronome";
     public override string RoleName => "Metronome";
-    public override string RoleDescription => "Collects one artifact for each distinct task type completed.";
+    public override string RoleDescription => "Completes tasks in a timing window to maintain a rhythm sequence.";
 }
 
 public sealed class CartoucheRole : PolusNeutralRole
