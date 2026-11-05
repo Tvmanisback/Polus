@@ -3,6 +3,7 @@ using System.Linq;
 using Il2CppInterop.Runtime.Injection;
 using UnityEngine;
 using HarmonyLib;
+using AmongUs.GameOptions;
 
 namespace Polus.Plugin;
 
@@ -96,9 +97,36 @@ public sealed class PolusHostPanel : MonoBehaviour
 
         GUILayout.Space(12);
         GUILayout.Label("PRIVATE LOBBY CHEATS");
-        GUILayout.Label(IsPrivateLobby
-            ? "Private lobby confirmed. Private-only options can be enabled here."
-            : "Locked: cheats are unavailable unless this is a private lobby.");
+        if (!IsPrivateLobby)
+        {
+            GUILayout.Label("LOCKED: these settings only work in a private lobby.");
+        }
+        else
+        {
+            GUILayout.Label("These settings sync to everyone in this private lobby.");
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Speed x1.5")) ApplyPrivateSetting(FloatOptionNames.PlayerSpeedMod, 1.5f);
+            if (GUILayout.Button("Speed x2")) ApplyPrivateSetting(FloatOptionNames.PlayerSpeedMod, 2f);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Crew vision x2")) ApplyPrivateSetting(FloatOptionNames.CrewmateVision, 2f);
+            if (GUILayout.Button("Impostor vision x2")) ApplyPrivateSetting(FloatOptionNames.ImpostorLightMod, 2f);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Kill cooldown 10s")) ApplyPrivateSetting(FloatOptionNames.KillCooldown, 10f);
+            if (GUILayout.Button("Kill cooldown 30s")) ApplyPrivateSetting(FloatOptionNames.KillCooldown, 30f);
+            GUILayout.EndHorizontal();
+
+            if (GUILayout.Button("Reset gameplay settings"))
+            {
+                ApplyPrivateSetting(FloatOptionNames.PlayerSpeedMod, 1f);
+                ApplyPrivateSetting(FloatOptionNames.CrewmateVision, 1f);
+                ApplyPrivateSetting(FloatOptionNames.ImpostorLightMod, 1.5f);
+                ApplyPrivateSetting(FloatOptionNames.KillCooldown, 30f);
+            }
+        }
 
         GUI.DragWindow(new Rect(0, 0, 10000, 24));
     }
@@ -113,6 +141,26 @@ public sealed class PolusHostPanel : MonoBehaviour
                        !GameStartManager.Instance.GamePublic;
             }
             catch { return false; }
+        }
+    }
+
+    private static void ApplyPrivateSetting(FloatOptionNames option, float value)
+    {
+        // Only the host may change settings, and only while the lobby is private.
+        if (!IsHost || !IsPrivateLobby || PlayerControl.LocalPlayer == null ||
+            GameOptionsManager.Instance == null ||
+            GameOptionsManager.Instance.CurrentGameOptions == null)
+            return;
+
+        try
+        {
+            var options = GameOptionsManager.Instance.CurrentGameOptions;
+            options.SetFloat(option, value);
+            PlayerControl.LocalPlayer.RpcSyncSettings(options);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError("[Polus] Could not sync private-lobby setting: " + ex);
         }
     }
 
