@@ -1,0 +1,44 @@
+name: iOS server plugin
+
+on:
+  push:
+    paths:
+      - "ios/Polus.ServerPlugin/**"
+      - "ios/server/**"
+      - ".github/workflows/ios-server.yml"
+  pull_request:
+    paths:
+      - "ios/Polus.ServerPlugin/**"
+      - "ios/server/**"
+      - ".github/workflows/ios-server.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore plugin
+        run: dotnet restore ios/Polus.ServerPlugin/Polus.ServerPlugin.csproj
+
+      - name: Build plugin
+        run: dotnet build ios/Polus.ServerPlugin/Polus.ServerPlugin.csproj -c Release --no-restore
+
+      - name: Validate server scripts
+        run: |
+          bash -n ios/server/download-impostor.sh
+          bash -n ios/server/run-local.sh
+          bash -n ios/server/run-https-tunnel.sh
+          bash -n ios/server/make-region.sh
+          bash -n ios/server/test-codespace.sh
+          python3 -m json.tool ios/server/config.template.json >/dev/null
