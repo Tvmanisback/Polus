@@ -112,10 +112,15 @@ public static class PolusRoleEvents
 
     private static void CheckNeutralWin(PlayerControl player)
     {
-        if (player.AmOwner && player.Data?.Role is PolusNeutralRole neutral &&
-            PolusRoleMechanics.GetProgress(player.PlayerId) >= neutral.ObjectiveTaskGoal &&
-            NeutralWinsTriggered.TryAdd(player.PlayerId, 0))
-            CustomGameOver.Trigger<PolusNeutralVictory>([player.Data]);
+        if (AmongUsClient.Instance == null || !AmongUsClient.Instance.AmHost
+            || player.Data?.Role is not PolusNeutralRole neutral
+            || PolusRoleMechanics.GetProgress(player.PlayerId) < neutral.ObjectiveTaskGoal
+            || !NeutralWinsTriggered.TryAdd(player.PlayerId, 0))
+            return;
+
+        // Use the stock Crewmate end-game reason so vanilla clients show the normal
+        // Crewmate victory screen when a neutral objective is completed.
+        ShipStatus.Instance.RpcEndGame(GameOverReason.HumansByVote, false);
     }
 
     public static int GetCompletedTaskCount(byte playerId) =>
