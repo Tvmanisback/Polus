@@ -15,8 +15,6 @@ public static class PolusRoleEvents
 {
     private static readonly ConcurrentDictionary<byte, int> CompletedTasks = new();
     private static readonly ConcurrentDictionary<byte, byte> NeutralWinsTriggered = new();
-    private static readonly ConcurrentDictionary<byte, byte> AbilityUsed = new();
-    private static readonly ConcurrentDictionary<byte, byte> BonusVotePending = new();
     private static readonly ConcurrentDictionary<byte, byte> BonusVotePending = new();
 
     [RegisterEvent]
@@ -24,10 +22,8 @@ public static class PolusRoleEvents
     {
         CompletedTasks.Clear();
         NeutralWinsTriggered.Clear();
-        AbilityUsed.Clear();
         BonusVotePending.Clear();
         PolusRoleMechanics.Reset();
-        BonusVotePending.Clear();
     }
 
     [RegisterEvent]
