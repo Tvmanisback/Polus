@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using UnityEngine;
+using MiraAPI.Utilities;
 using Polus.Plugin.Roles;
 
 namespace Polus.Plugin;
@@ -73,6 +74,142 @@ public static class PolusRoleMechanics
         s.Snapshot = s.Tasks;
         s.Progress = difference;
         return difference;
+    }
+
+    public static bool Activate(PlayerControl player)
+    {
+        if (player?.Data == null || !player.AmOwner || player.Data.Role is not ICustomRole custom) return false;
+        var s = Get(player.PlayerId);
+        string message;
+
+        switch (player.Data.Role)
+        {
+            case CartographerRole:
+                s.Sectors.Add(Sector(player.transform.position));
+                s.Progress = s.Sectors.Count;
+                message = $"Route journal updated: {s.Progress} sectors mapped.";
+                break;
+            case AuditorRole:
+                var audited = TakeSnapshot(player.PlayerId);
+                if (audited > 0) PolusRoleEvents.QueueBonusVote(player.PlayerId);
+                message = $"Audit checkpoint: {audited} task completions since the previous check.";
+                break;
+            case RelayRole:
+                message = $"Decoded {s.Tasks / 2} task signals. Complete two tasks per signal.";
+                break;
+            case QuartermasterRole:
+                message = "Complete four tasks to unlock the emergency meeting call.";
+                break;
+            case SurveyorRole:
+                s.Sectors.Add(Sector(player.transform.position));
+                s.Progress = s.Sectors.Count;
+                message = $"Survey updated: {s.Progress} unique sectors visited.";
+                break;
+            case CourierRole:
+                message = $"Delivery ledger: {s.Tasks} tasks delivered.";
+                break;
+            case ArchivistRole:
+                message = $"Archive contains {s.Ledger.Count} recorded events.";
+                break;
+            case BeaconistRole:
+                if (s.Tasks >= 2) PolusRoleEvents.QueueBonusVote(player.PlayerId);
+                message = $"Beacon has {s.Tasks / 2} charged signals.";
+                break;
+            case MediatorRole:
+                if (s.Tasks >= 3) PolusRoleEvents.QueueBonusVote(player.PlayerId);
+                message = $"Mediation progress: {s.Tasks}/3 tasks.";
+                break;
+            case CalibratorRole:
+                if (s.Streak >= 2) PolusRoleEvents.QueueBonusVote(player.PlayerId);
+                message = $"Calibration streak: {s.Streak} matching task types.";
+                break;
+            case SignalwrightRole:
+                if (s.Chain >= 3) PolusRoleEvents.QueueBonusVote(player.PlayerId);
+                message = $"Signal chain: {s.Chain} consecutive different task types.";
+                break;
+            case TimekeeperRole:
+            case TimeCapsuleRole:
+                var snapshot = TakeSnapshot(player.PlayerId);
+                message = $"Checkpoint comparison: {snapshot} tasks completed since the last snapshot.";
+                break;
+            case CounterfeiterRole:
+                s.Progress++;
+                message = $"Forgery token prepared. Tokens: {s.Progress}.";
+                break;
+            case EchoistRole:
+                s.Progress++;
+                message = $"Echo cue sent. Cues emitted: {s.Progress}.";
+                break;
+            case BlackoutArtistRole:
+                s.Progress++;
+                foreach (var sprite in player.cosmetics.GetComponentsInChildren<SpriteRenderer>())
+                    sprite.color = new Color(0.35f, 0.35f, 0.35f, 1f);
+                message = $"Display blackout applied. Patterns: {s.Progress}.";
+                break;
+            case BrokerRole:
+                s.Progress++;
+                PolusRoleEvents.QueueBonusVote(player.PlayerId);
+                message = $"Trade completed. Exchanges: {s.Progress}.";
+                break;
+            case DecoyistRole:
+                var decoy = player.GetClosestPlayer(true, 2.5f);
+                if (decoy != null) player.NetTransform.RpcSnapTo(decoy.transform.position);
+                s.Progress++;
+                message = decoy == null ? "No nearby decoy destination found." : "Decoy reposition completed.";
+                break;
+            case LedgeristRole:
+                s.Progress++;
+                message = $"Task ledger checkpoint delayed. Windows created: {s.Progress}.";
+                break;
+            case SwitchboarderRole:
+                var other = player.GetClosestPlayer(true, 2.5f);
+                if (other != null)
+                {
+                    var old = player.transform.position;
+                    player.NetTransform.RpcSnapTo(other.transform.position);
+                    other.NetTransform.RpcSnapTo(old);
+                }
+                s.Progress++;
+                message = other == null ? "No nearby player to switch with." : "Positions switched.";
+                break;
+            case WeathermakerRole:
+                s.Progress++;
+                player.cosmetics.currentBodySprite.BodySprite.color = new Color(UnityEngine.Random.value, UnityEngine.Random.value, UnityEngine.Random.value, 1f);
+                message = $"Ambient palette changed. Changes: {s.Progress}.";
+                break;
+            case MisdirectorRole:
+                s.Progress++;
+                message = $"Misleading room statistic published. Summaries: {s.Progress}.";
+                break;
+            case ScramblerRole:
+                s.Progress++;
+                message = $"Status sequence scrambled. Scrambles: {s.Progress}.";
+                break;
+            case ParasiticSignalRole:
+                var tagged = player.GetClosestPlayer(true, 2.5f);
+                if (tagged != null) tagged.cosmetics.SetOutline(true, new Il2CppSystem.Nullable<Color>(Color.magenta));
+                s.Progress++;
+                message = tagged == null ? "Move closer to a player to attach a signal." : $"Signal attached to {tagged.Data.PlayerName}.";
+                break;
+            case JigsawRole:
+            case PilgrimRole:
+            case CuratorRole:
+            case WayfinderRole:
+            case CollectorRole:
+            case MetronomeRole:
+            case CartoucheRole:
+            case LighthouseRole:
+            case WeathervaneRole:
+            case PuzzlewrightRole:
+            case NomadRole:
+                message = $"{custom.RoleName} objective: {s.Progress}/{((PolusNeutralRole)player.Data.Role).ObjectiveTaskGoal}. Complete your role-specific task pattern.";
+                break;
+            default:
+                return false;
+        }
+
+        Helpers.CreateAndShowNotification(message, custom.RoleColor, new Vector3(0f, 2f, -50f));
+        return true;
     }
 
     public static void RecordMeeting(PlayerControl player)
