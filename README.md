@@ -22,11 +22,11 @@
 
 | Platform | Status | Download |
 | --- | --- | --- |
-| **PC (Windows x64)** | EXE release | [**Download Polus.exe**](https://github.com/Tvmanisback/Polus/releases/latest/download/Polus.exe) |
-| **Android** | APK in development | Not available yet |
+| **PC (Windows x64)** | Available | [**Download Polus.exe**](https://github.com/Tvmanisback/Polus/releases/download/1.1.0/Polus.exe) |
+| **Android** | APK release | [**Download Polus APK**](https://github.com/Tvmanisback/Polus/releases/download/1.1.0/com.tvmanisback.poluscompanion.apk) |
 | **iOS** | Unsupported | Not available |
 
-**Windows:** Download the EXE directly. Releases contain the installer executable, not a ZIP file. If the direct download is not available yet, open [Polus Releases](https://github.com/Tvmanisback/Polus/releases) and download the Polus.exe asset from the latest release.
+**Windows:** Download and run `Polus.exe` directly; no ZIP extraction is required. **Android:** Download and install the APK, then open the Polus patcher. Android may require you to approve installation from your browser or file manager.
 
 ## Quick navigation
 
@@ -66,7 +66,7 @@
 ## Compatibility
 
 - **Game:** Among Us Steam, build 2026.9.29 / Build ID 25134893.
-- **Architecture:** Windows x64.
+- **Architecture:** Windows x64 for the PC patcher; Android APK for the Android patcher.
 - **Loader:** BepInEx 6 IL2CPP, build line 6.0.0-be.788.
 - **Plugin target:** AmongUs.GameLibs.Steam 2026.9.29, Reactor 2.5.1-ci.400.
 
@@ -74,13 +74,18 @@ Game updates can break compatibility. All players who need custom role functiona
 
 ## Installation
 
-1. Download **Polus.exe** from the [latest release](https://github.com/Tvmanisback/Polus/releases/latest/download/Polus.exe).
-2. Run the downloaded EXE. **There is no ZIP file to extract.**
+### Windows
+1. Download [**Polus.exe (version 1.1.0)**](https://github.com/Tvmanisback/Polus/releases/download/1.1.0/Polus.exe).
+2. Run the EXE directly; no ZIP extraction is required.
 3. Select **Setup**. The patcher searches Steam libraries automatically; use Browse if needed.
 4. Let Setup install BepInEx and create a backup.
-5. Select **Patch** to install Polus.
-6. Launch Among Us through Steam.
-7. To undo the changes, open Polus and use **Restore** with the backup created during Setup.
+5. Select **Patch** to install Polus, then launch Among Us through Steam.
+6. To undo the changes, use **Restore** with the backup created during Setup.
+
+### Android
+1. Download [**com.tvmanisback.poluscompanion.apk (version 1.1.0)**](https://github.com/Tvmanisback/Polus/releases/download/1.1.0/com.tvmanisback.poluscompanion.apk).
+2. Open the APK and approve Android's install prompt. If prompted, allow your browser or file manager to install apps.
+3. Open Polus and follow the patcher's on-screen instructions. Keep the original game backed up; installing a differently signed patched game may require uninstalling the Play Store copy and can erase local game data.
 
 ## Disclaimer and credits
 
