@@ -1,6 +1,7 @@
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Unity.IL2CPP;
+using MiraAPI;
 using HarmonyLib;
 using MiraAPI.PluginLoading;
 using MiraAPI.Translation;
