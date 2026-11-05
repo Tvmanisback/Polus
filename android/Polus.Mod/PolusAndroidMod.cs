@@ -19,6 +19,7 @@ public sealed class PolusAndroidMod : MelonMod
     private static IReadOnlyList<RoleDefinition> _catalog = Array.Empty<RoleDefinition>();
     private static RoleMatchRuntime? _hostRuntime;
     private static readonly HostRoleEngine SharedRoleEngine = new();
+    private static readonly RoleEffectEngine SharedEffects = new(true);
     private static HarmonyLib.Harmony? _harmony;
     private static bool _choiceMade;
     private static bool _moddedMode;
@@ -222,11 +223,13 @@ public sealed class PolusAndroidMod : MelonMod
             _hostRuntime = new RoleMatchRuntime(true);
             PolusHostRoles.ResetMatch();
             SharedRoleEngine.EndMatch();
+            SharedEffects.EndMatch();
             AndroidRoleMechanics.Reset();
             _meetingNumber = 0;
             var assignments = _hostRuntime.StartMatch(players.Select(p => new PlayerSlot(p)).ToArray(),
                 configuredCatalog, settings, impostorCount: 1, neutralCount: 0);
             SharedRoleEngine.StartMatch(assignments);
+            SharedEffects.BeginMatch(assignments);
             lock (StateLock)
             {
                 AssignedRoles.Clear();
@@ -254,6 +257,8 @@ public sealed class PolusAndroidMod : MelonMod
             _status = "Host rejected an invalid role ability request.";
             return;
         }
+        var effectDecision = SharedEffects.TryUseAbility(playerId, DateTimeOffset.UtcNow, assigned.CooldownSeconds, out var effectCommand);
+        if (!effectDecision.Accepted) { _status = effectDecision.Message; return; }
         var result = SharedRoleEngine.TryUseAbility(playerId, DateTimeOffset.UtcNow, assigned.CooldownSeconds);
         if (!result.Accepted) { _status = result.Message; return; }
         if (!PolusHostRoles.TryUseAction(assigned.Id, playerId, IsHost(), out var actionResult))
@@ -263,7 +268,7 @@ public sealed class PolusAndroidMod : MelonMod
         }
         var uses = AbilityUses.GetValueOrDefault(playerId) + 1;
         AbilityUses[playerId] = uses;
-        _status = assigned.Name + ": " + actionResult;
+        _status = assigned.Name + ": " + actionResult + " [" + effectCommand.Kind + "]";
     }
     private void RequestMeeting()
     {
@@ -287,6 +292,7 @@ public sealed class PolusAndroidMod : MelonMod
         _meetingNumber++;
         PolusHostRoles.BeginMeeting();
         SharedRoleEngine.BeginMeeting();
+        SharedEffects.BeginMeeting();
         var localId = GetLocalPlayerId();
         var local = GetLocalPlayer();
         if (localId.HasValue && local != null && AssignedRoles.TryGetValue(localId.Value, out var role))
@@ -302,6 +308,7 @@ public sealed class PolusAndroidMod : MelonMod
     {
         PolusHostRoles.OnGameEnded();
         SharedRoleEngine.EndMatch();
+        SharedEffects.EndMatch();
     }
 
     private static void VoteCastPostfix(object[] __args)
@@ -334,6 +341,7 @@ public sealed class PolusAndroidMod : MelonMod
             var position = transform == null ? Vector3.zero : (Vector3)(GetMember(transform, "position") ?? Vector3.zero);
             AndroidRoleMechanics.RecordTask(playerId, position, taskType);
             SharedRoleEngine.RecordTask(playerId, taskType, position.x, position.y);
+            SharedEffects.RecordTask(playerId, taskType, position.x, position.y);
         }
         catch (Exception ex) { MelonLogger.Warning("Task progress hook failed: " + ex.Message); }
     }
