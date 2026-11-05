@@ -63,14 +63,19 @@ internal static class AndroidMiraApi
     public static bool IsRegistered(string roleId) => Roles.ContainsKey(roleId);
     public static ActionButton? GetActionButton(string roleId) =>
         Actions.TryGetValue(roleId, out var button) ? button : null;
-    public static MeetingButton? GetMeetingButton(string roleId) =>
-        MeetingActions.TryGetValue(roleId, out var button) ? button : null;
+    public static MeetingButton? GetMeetingButton(string roleId)
+    {
+        if (MeetingActions.TryGetValue(roleId, out var button)) return button;
+        var registered = MiraApi.Instance.MeetingButtons.All.FirstOrDefault(item =>
+            item.RoleId.Equals(roleId, StringComparison.OrdinalIgnoreCase));
+        return registered == null ? null : new MeetingButton(roleId, registered.Label, registered.MaxUses);
+    }
 
     public static bool TryUseAction(string roleId, byte playerId, bool isHost, out string result) =>
-        MiraApi.Instance.Buttons.TryUse(roleId,
+        MiraApi.Instance.Buttons.TryUseForRole(roleId,
             new MiraActionContext(playerId, isHost, DateTimeOffset.UtcNow), out result);
 
     public static bool TryUseMeeting(string roleId, byte playerId, bool isHost, int meetingNumber, out string result) =>
-        MiraApi.Instance.MeetingButtons.TryUse(roleId,
+        MiraApi.Instance.MeetingButtons.TryUseForRole(roleId,
             new MiraMeetingContext(playerId, isHost, meetingNumber), out result);
 }
