@@ -8,13 +8,11 @@ namespace Polus.Plugin.Buttons;
 
 public sealed class PolusRoleAbilityButton : CustomActionButton
 {
-    public override string Name
-    {
-        get
+    public override string Name => GetAbilityLabel(PlayerControl.LocalPlayer?.Data?.Role);
+
+    public static string GetAbilityLabel(RoleBehaviour? role) =>
+        role switch
         {
-            var role = PlayerControl.LocalPlayer?.Data?.Role;
-            return role switch
-            {
                 CartographerRole => "Map Survey",
                 AuditorRole => "Audit",
                 RelayRole => "Decode Signal",
@@ -51,9 +49,7 @@ public sealed class PolusRoleAbilityButton : CustomActionButton
                 TimeCapsuleRole => "Compare Snapshot",
                 NomadRole => "Itinerary",
                 _ => "Polus Ability"
-            };
-        }
-    }
+        };
 
     public override float Cooldown => 25f;
     public override float EffectDuration => PlayerControl.LocalPlayer?.Data?.Role is BlackoutArtistRole or WeathermakerRole or ParasiticSignalRole ? 8f : 0f;
