@@ -111,7 +111,6 @@ public static class PolusRoleMechanics
                 break;
             case AuditorRole:
                 var audited = TakeSnapshot(player.PlayerId);
-                if (audited > 0) PolusRoleEvents.QueueBonusVote(player.PlayerId);
                 message = $"Audit checkpoint: {audited} task completions since the previous check.";
                 break;
             case RelayRole:
@@ -132,19 +131,15 @@ public static class PolusRoleMechanics
                 message = $"Archive contains {s.Ledger.Count} recorded events.";
                 break;
             case BeaconistRole:
-                if (s.Tasks >= 2) PolusRoleEvents.QueueBonusVote(player.PlayerId);
                 message = $"Beacon has {s.Tasks / 2} charged signals.";
                 break;
             case MediatorRole:
-                if (s.Tasks >= 3) PolusRoleEvents.QueueBonusVote(player.PlayerId);
                 message = $"Mediation progress: {s.Tasks}/3 tasks.";
                 break;
             case CalibratorRole:
-                if (s.Streak >= 2) PolusRoleEvents.QueueBonusVote(player.PlayerId);
                 message = $"Calibration streak: {s.Streak} matching task types.";
                 break;
             case SignalwrightRole:
-                if (s.Chain >= 3) PolusRoleEvents.QueueBonusVote(player.PlayerId);
                 message = $"Signal chain: {s.Chain} consecutive different task types.";
                 break;
             case TimekeeperRole:
@@ -170,7 +165,6 @@ public static class PolusRoleMechanics
                 break;
             case BrokerRole:
                 s.Progress++;
-                PolusRoleEvents.QueueBonusVote(player.PlayerId);
                 message = $"Trade completed. Exchanges: {s.Progress}.";
                 break;
             case DecoyistRole:
@@ -248,6 +242,22 @@ public static class PolusRoleMechanics
         LastTaggedPlayer = null;
     }
 
+    public static bool ShouldGrantMeetingVote(PlayerControl player, int tasksSinceMeeting)
+    {
+        if (player?.Data == null) return false;
+        var s = Get(player.PlayerId);
+        return player.Data.Role switch
+        {
+            AuditorRole => s.Tasks > s.Snapshot,
+            MediatorRole => tasksSinceMeeting >= 3,
+            BeaconistRole => s.Tasks - s.Snapshot >= 2,
+            CalibratorRole => s.Streak >= 2,
+            SignalwrightRole => s.Chain >= 3,
+            BrokerRole => true,
+            _ => false
+        };
+    }
+
     public static void RecordMeeting(PlayerControl player)
     {
         if (player?.Data == null) return;
@@ -255,5 +265,12 @@ public static class PolusRoleMechanics
         s.Ledger.Add("Meeting");
         if (s.Ledger.Count > 40) s.Ledger.RemoveAt(0);
         if (player.Data.Role is ArchivistRole) s.Progress = s.Ledger.Count;
+        if (player.Data.Role is AuditorRole or BeaconistRole) s.Snapshot = s.Tasks;
+        if (player.Data.Role is CalibratorRole or SignalwrightRole)
+        {
+            s.Streak = 0;
+            s.Chain = 0;
+            s.LastType = "";
+        }
     }
 }
