@@ -104,11 +104,14 @@ public sealed class MainActivity : Activity, IPatchLogger
                 await download.Content.CopyToAsync(stream);
             }
 
-            SetStatus("Running LemonLoader patch pipeline…");
+            var modAssembly = ExtractEmbeddedAssembly("Polus.Android.Polus.AndroidMod.dll", work);
+            var roleCoreAssembly = ExtractEmbeddedAssembly("Polus.Android.Polus.RoleCore.dll", work);
+
+            SetStatus("Running LemonLoader patch pipeline and bundling Polus Android mod…");
             var args = new PatchArguments(
                 copiedBase, copiedLib, extras, output, Path.Combine(work, "temp"),
                 dataPath, Path.Combine(work, "unity-dependencies.zip"),
-                null, GamePackage, split);
+                null, GamePackage, split, new[] { modAssembly, roleCoreAssembly });
             var patcher = new Patcher(args, this);
             var success = await Task.Run(patcher.Run);
             if (!success) throw new InvalidOperationException("LemonLoader patching failed. See the log above.");
@@ -124,6 +127,16 @@ public sealed class MainActivity : Activity, IPatchLogger
         {
             _patch.Enabled = true;
         }
+    }
+
+    private string ExtractEmbeddedAssembly(string resourceName, string directory)
+    {
+        using var resource = GetType().Assembly.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException("Missing embedded Polus runtime assembly: " + resourceName);
+        var destination = Path.Combine(directory, Path.GetFileName(resourceName));
+        using var output = File.Create(destination);
+        resource.CopyTo(output);
+        return destination;
     }
 
     private static async Task<string> CopyToPrivateStorage(string source, string directory)
