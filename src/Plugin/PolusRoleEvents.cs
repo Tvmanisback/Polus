@@ -22,6 +22,8 @@ public static class PolusRoleEvents
         CompletedTasks.Clear();
         NeutralWinsTriggered.Clear();
         PolusRoleMechanics.Reset();
+        foreach (var player in PlayerControl.AllPlayerControls.ToArray())
+            PolusRoleMechanics.InitializePlayer(player);
     }
 
     [RegisterEvent]
