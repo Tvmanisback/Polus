@@ -62,6 +62,7 @@ public sealed class RoleEffectEngine
                 return Reject("unassigned", "Player has no Polus role.");
             taskType = string.IsNullOrWhiteSpace(taskType) ? "task" : taskType.Trim();
             var sector = $"{MathF.Floor(x / 4f)}:{MathF.Floor(y / 4f)}";
+            var differentTask = s.LastTask.Length == 0 || !s.LastTask.Equals(taskType, StringComparison.OrdinalIgnoreCase);
             s.Tasks++;
             s.TaskTypes.Add(taskType);
             s.Sectors.Add(sector);
@@ -95,12 +96,12 @@ public sealed class RoleEffectEngine
                 "signalwright" => s.Chain,
                 "timekeeper" or "timecapsule" => s.Tasks - s.Snapshot,
                 "curator" => s.TypeSectorPairs.Count,
-                "pilgrim" => s.Streak == 1 ? s.Progress + 1 : 0,
+                "pilgrim" => differentTask ? s.Progress + 1 : 0,
                 "wayfinder" => s.Sectors.Count,
                 "metronome" => s.Tasks % 3 == 0 && s.Chain >= 2 ? s.Progress + 1 : s.Progress,
                 "cartouche" => s.TaskPairs.Count,
                 "weathervane" => s.Chain / 2,
-                "puzzlewright" => s.Streak == 1 ? s.Progress + 1 : 0,
+                "puzzlewright" => differentTask ? s.Progress + 1 : 0,
                 "nomad" => Math.Max(0, s.Tasks - s.Sectors.Count),
                 _ => s.Progress
             };
@@ -219,7 +220,11 @@ public sealed class RoleEffectEngine
     }
 
     private static RoleEffectCommand Cmd(string kind, string message, int value) => new(kind, message, value);
-    private static string Normalize(string id) => id.Trim().Replace('-', '_').ToLowerInvariant();
+    private static string Normalize(string id)
+    {
+        var normalized = id.Trim().Replace('-', '_').ToLowerInvariant();
+        return normalized == "time_capsule" ? "timecapsule" : normalized;
+    }
     private void EnsureHost() { if (!isHost) throw new InvalidOperationException("Only the host may mutate role effects."); }
     private static RoleActionResult Reject(string code, string message) => new(false, code, message);
 }
