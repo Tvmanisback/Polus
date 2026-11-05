@@ -179,6 +179,24 @@ public sealed class RoleEffectEngine
         lock (gate) return states.TryGetValue(playerId, out var s) ? s.Progress : 0;
     }
 
+    public bool HasMeetingAbility(byte playerId)
+    {
+        lock (gate)
+        {
+            if (!states.TryGetValue(playerId, out var s) || s.MeetingActionUsed) return false;
+            return s.RoleId switch
+            {
+                "auditor" => s.TasksThisMeeting > 0,
+                "mediator" => s.TasksThisMeeting >= 3,
+                "beaconist" => s.TasksThisMeeting >= 2,
+                "calibrator" => s.Streak >= 2,
+                "signalwright" => s.Chain >= 2,
+                "broker" => true,
+                _ => false
+            };
+        }
+    }
+
     public string? GetRoleId(byte playerId)
     {
         lock (gate) return states.TryGetValue(playerId, out var s) ? s.RoleId : null;
