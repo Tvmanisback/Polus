@@ -120,7 +120,86 @@ public static class PolusRoleEvents
 
         // Use the stock Crewmate end-game reason so vanilla clients show the normal
         // Crewmate victory screen when a neutral objective is completed.
-        ShipStatus.Instance.RpcEndGame(GameOverReason.HumansByVote, false);
+        TryEndGameWithCrewmateVictory();
+    }
+
+    private static void TryEndGameWithCrewmateVictory()
+    {
+        // Among Us API versions move the end-game RPC between game types and
+        // change the exposed enum members. Resolve the stock human-win reason
+        // at runtime rather than binding this plugin to one generated API shape.
+        var candidates = new[]
+        {
+            typeof(ShipStatus),
+            typeof(AmongUsClient)
+        };
+
+        foreach (var type in candidates)
+        {
+            var target = type == typeof(ShipStatus)
+                ? (object?)ShipStatus.Instance
+                : AmongUsClient.Instance;
+            foreach (var method in type.GetMethods(
+                         System.Reflection.BindingFlags.Public |
+                         System.Reflection.BindingFlags.NonPublic |
+                         System.Reflection.BindingFlags.Instance |
+                         System.Reflection.BindingFlags.Static))
+            {
+                if (!method.Name.Contains("EndGame", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var parameters = method.GetParameters();
+                var args = new object?[parameters.Length];
+                var usable = true;
+                for (var i = 0; i < parameters.Length; i++)
+                {
+                    var parameterType = parameters[i].ParameterType;
+                    if (parameterType.IsEnum)
+                    {
+                        var humanReason = Enum.GetNames(parameterType)
+                            .FirstOrDefault(name =>
+                                name.Contains("Human", StringComparison.OrdinalIgnoreCase) ||
+                                name.Contains("Crewmate", StringComparison.OrdinalIgnoreCase));
+                        if (humanReason == null) { usable = false; break; }
+                        args[i] = Enum.Parse(parameterType, humanReason);
+                    }
+                    else if (parameterType == typeof(bool))
+                    {
+                        args[i] = false;
+                    }
+                    else if (parameterType == typeof(int))
+                    {
+                        args[i] = 0;
+                    }
+                    else if (parameterType == typeof(byte))
+                    {
+                        args[i] = (byte)0;
+                    }
+                    else if (parameterType.IsOptional)
+                    {
+                        args[i] = parameters[i].DefaultValue;
+                    }
+                    else
+                    {
+                        usable = false;
+                        break;
+                    }
+                }
+
+                if (!usable || (!method.IsStatic && target == null))
+                    continue;
+
+                try
+                {
+                    method.Invoke(method.IsStatic ? null : target, args);
+                    return;
+                }
+                catch
+                {
+                    // Try another compatible game API entry point.
+                }
+            }
+        }
     }
 
     public static int GetCompletedTaskCount(byte playerId) =>
