@@ -143,7 +143,7 @@ public sealed class PolusAndroidMod : MelonMod
         if (_harmony != null) return;
         _harmony = new HarmonyLib.Harmony("org.polus.android");
         PatchByName("MeetingHud", "Start", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(MeetingStarted)));
-        PatchByName("MeetingHud", "OnDestroy", prefix: AccessTools.Method(typeof(PolusAndroidMod), nameof(MeetingEnding)));\n        PatchByName("MeetingHud", "CastVote", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(VoteCastPostfix)));
+        PatchByName("MeetingHud", "OnDestroy", prefix: AccessTools.Method(typeof(PolusAndroidMod), nameof(MeetingEnding)));\n        PatchByName("MeetingHud", "CastVote", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(VoteCastPostfix)));\n        PatchByName("EndGameManager", "Start", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(GameEndedPostfix)));
         PatchByName("PlayerControl", "CompleteTask", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(TaskCompletedPostfix)));
         _status = "Host-only mode active. Other players remain on unmodified clients.";
     }
@@ -189,7 +189,7 @@ public sealed class PolusAndroidMod : MelonMod
 
         try
         {
-            var enabled = _catalog.ToDictionary(r => r.Id, _ => true, StringComparer.OrdinalIgnoreCase);
+            var enabled = _catalog.ToDictionary(r => r.Id, r => MiraApi.Instance.Options.Get("role." + r.Id + ".enabled", true), StringComparer.OrdinalIgnoreCase);
             var settings = HostSettingsValidator.Validate(new HostSettings(true, 3, false, enabled));
             _hostRuntime = new RoleMatchRuntime(true);\n            MiraApi.Instance.ResetMatch();\n            _meetingNumber = 0;
             var assignments = _hostRuntime.StartMatch(players.Select(p => new PlayerSlot(p)).ToArray(),
@@ -258,7 +258,7 @@ public sealed class PolusAndroidMod : MelonMod
     }
 
 
-    private static void VoteCastPostfix(object[] __args)
+    private static void GameEndedPostfix()\n    {\n        MiraApi.Instance.Events.Publish(new MiraGameEndedEvent("Among Us game ended."));\n    }\n\n    private static void VoteCastPostfix(object[] __args)
     {
         if (!_moddedMode || !IsHost() || __args == null || __args.Length < 2) return;
         try
