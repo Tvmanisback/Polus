@@ -5,28 +5,41 @@ using UnityEngine;
 
 namespace Polus.Plugin.Patches;
 
-// Uses the game's existing Kill button as a role-ability button for the
-// vanilla-button implementation. The original kill action is suppressed
-// only while the local player has a Polus role.
+// Creates a second KillButton instance for the role ability. The game's original
+// KillButton remains in place and continues to handle normal impostor kills.
 [HarmonyPatch(typeof(HudManager), nameof(HudManager.Update))]
 internal static class PolusVanillaRoleButtonUpdatePatch
 {
+    private static KillButton? _abilityButton;
     private static float _cooldown;
 
-    private static bool HasPolusRole(RoleBehaviour? role) =>
-        role is PolusCrewmateRole or PolusImpostorRole or PolusNeutralRole &&
-        role is not QuartermasterRole;
+    internal static KillButton? AbilityButton => _abilityButton;
+    internal static bool CanActivate => _cooldown <= 0f;
+    internal static void StartCooldown() => _cooldown = 25f;
 
     private static void Postfix(HudManager __instance)
     {
-        var player = PlayerControl.LocalPlayer;
-        var button = __instance?.KillButton;
-        if (player?.Data == null || button == null || !HasPolusRole(player.Data.Role))
-            return;
+        var original = __instance?.KillButton;
+        if (original == null) return;
 
-        if (MeetingHud.Instance != null || player.Data.IsDead ||
-            AmongUsClient.Instance == null ||
-            AmongUsClient.Instance.GameState != InnerNetClient.GameStates.Started)
+        if (_abilityButton == null)
+        {
+            _abilityButton = Object.Instantiate(original, original.transform.parent);
+            _abilityButton.name = "PolusRoleAbilityButton";
+            _abilityButton.transform.localPosition =
+                original.transform.localPosition + new Vector3(-0.85f, 0f, 0f);
+        }
+
+        var player = PlayerControl.LocalPlayer;
+        var button = _abilityButton;
+        if (player?.Data == null || button == null) return;
+
+        var inGame = MeetingHud.Instance == null &&
+                     !player.Data.IsDead &&
+                     AmongUsClient.Instance != null &&
+                     AmongUsClient.Instance.GameState == InnerNetClient.GameStates.Started;
+
+        if (!inGame)
         {
             button.gameObject.SetActive(false);
             return;
@@ -39,9 +52,6 @@ internal static class PolusVanillaRoleButtonUpdatePatch
         button.SetTarget(null);
         button.SetCoolDown(_cooldown, 25f);
     }
-
-    internal static bool CanActivate => _cooldown <= 0f;
-    internal static void StartCooldown() => _cooldown = 25f;
 }
 
 [HarmonyPatch(typeof(KillButton), nameof(KillButton.DoClick))]
@@ -49,19 +59,21 @@ internal static class PolusVanillaRoleButtonClickPatch
 {
     private static bool Prefix(KillButton __instance)
     {
-        var player = PlayerControl.LocalPlayer;
-        if (player?.Data == null ||
-            player.Data.Role is not (PolusCrewmateRole or PolusImpostorRole or PolusNeutralRole) ||
-            player.Data.Role is QuartermasterRole)
+        // Only consume clicks on our duplicated ability button. The original
+        // KillButton always falls through to the game's normal kill handling.
+        if (__instance == null ||
+            __instance != PolusVanillaRoleButtonUpdatePatch.AbilityButton)
             return true;
 
-        if (MeetingHud.Instance != null || player.Data.IsDead ||
+        var player = PlayerControl.LocalPlayer;
+        if (player?.Data == null ||
+            MeetingHud.Instance != null ||
+            player.Data.IsDead ||
             AmongUsClient.Instance == null ||
             AmongUsClient.Instance.GameState != InnerNetClient.GameStates.Started)
             return false;
 
-        if (__instance != null && __instance.isActiveAndEnabled &&
-            PolusVanillaRoleButtonUpdatePatch.CanActivate &&
+        if (PolusVanillaRoleButtonUpdatePatch.CanActivate &&
             PolusRoleEvents.ActivateVanillaRoleAbility(player))
             PolusVanillaRoleButtonUpdatePatch.StartCooldown();
 
