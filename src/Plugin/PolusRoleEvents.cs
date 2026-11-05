@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Text.RegularExpressions;
 using MiraAPI.Events;
 using MiraAPI.Events.Vanilla.Meeting;
 using MiraAPI.Events.Vanilla.Gameplay;
@@ -31,9 +32,10 @@ public static class PolusRoleEvents
             PolusRoleMechanics.InitializePlayer(player);
             var role = player.Data.Role;
             if (role is not ICustomRole custom) continue;
-            var roleId = role.GetType().Name.EndsWith("Role", StringComparison.Ordinal)
-                ? role.GetType().Name[..^4].ToLowerInvariant()
-                : role.GetType().Name.ToLowerInvariant();
+            var roleName = role.GetType().Name.EndsWith("Role", StringComparison.Ordinal)
+                ? role.GetType().Name[..^4]
+                : role.GetType().Name;
+            var roleId = Regex.Replace(roleName, "([a-z0-9])([A-Z])", "$1_$2").ToLowerInvariant();
             var team = role is PolusImpostorRole ? RoleTeam.Impostor
                 : role is PolusNeutralRole ? RoleTeam.Neutral : RoleTeam.Crewmate;
             assignments.Add(new RoleAssignment(player.PlayerId,
