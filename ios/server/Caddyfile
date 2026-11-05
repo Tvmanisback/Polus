@@ -1,6 +1,9 @@
 polus.yapyur.org:25906 {
     tls {
-        dns ionos {env.IONOS_API_TOKEN}
+        dns ionos {
+            api_token {env.IONOS_API_TOKEN}
+            allowed_zones yapyur.org
+        }
     }
 
     reverse_proxy 127.0.0.1:8080
