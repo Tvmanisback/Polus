@@ -12,7 +12,7 @@
     <ProjectReference Include="../../src/RoleCore/RoleCore.csproj" />
     <PackageReference Include="LavaGang.MelonLoader" Version="0.6.6" PrivateAssets="all" ExcludeAssets="runtime" />
     <PackageReference Include="BepInEx.Unity.IL2CPP" Version="6.0.0-be.788" PrivateAssets="all" ExcludeAssets="runtime" />
-    <PackageReference Include="AmongUs.GameLibs.Steam" Version="2026.9.29" PrivateAssets="all" ExcludeAssets="runtime" />
+    <PackageReference Include="AmongUs.GameLibs.Steam" Version="2026.9.29" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Roles.json" />
