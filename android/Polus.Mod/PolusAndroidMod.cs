@@ -177,6 +177,7 @@ public sealed class PolusAndroidMod : MelonMod
         _harmony?.UnpatchSelf();
         _harmony = null;
         _hostRuntime = null;
+        if (IsHost()) { SharedRoleEngine.EndMatch(); SharedEffects.EndMatch(); }
         lock (StateLock) { AssignedRoles.Clear(); AbilityUses.Clear(); }
         AndroidRoleMechanics.Reset();
     }
@@ -289,6 +290,7 @@ public sealed class PolusAndroidMod : MelonMod
     private static void MeetingStarted()
     {
         _meetingOpen = true;
+        if (!IsHost()) return;
         _meetingNumber++;
         PolusHostRoles.BeginMeeting();
         SharedRoleEngine.BeginMeeting();
@@ -306,6 +308,7 @@ public sealed class PolusAndroidMod : MelonMod
 
     private static void GameEndedPostfix()
     {
+        if (!IsHost()) return;
         PolusHostRoles.OnGameEnded();
         SharedRoleEngine.EndMatch();
         SharedEffects.EndMatch();
@@ -332,7 +335,7 @@ public sealed class PolusAndroidMod : MelonMod
 
     private static void TaskCompletedPostfix(object __instance, object[] __args)
     {
-        if (!_moddedMode || __instance == null) return;
+        if (!_moddedMode || !IsHost() || __instance == null) return;
         try
         {
             if (!TryGetByte(__instance, "PlayerId", out var playerId)) return;
