@@ -1,10 +1,8 @@
+using Polus.MiraApi.Android;
+using Polus.RoleCore;
+
 namespace Polus.AndroidMod;
 
-/// <summary>
-/// Android-native compatibility surface for the MiraAPI features Polus consumes.
-/// It deliberately does not load BepInEx/Reactor/MiraAPI binaries; those target the
-/// Windows IL2CPP plugin stack and cannot be loaded by LemonLoader.
-/// </summary>
 internal static class AndroidMiraApi
 {
     internal sealed record CustomRole(string Id, string Name, string Team, string Description);
@@ -19,20 +17,41 @@ internal static class AndroidMiraApi
     public static IReadOnlyCollection<ActionButton> RegisteredActionButtons => Actions.Values;
     public static IReadOnlyCollection<MeetingButton> RegisteredMeetingButtons => MeetingActions.Values;
 
-    public static void RegisterRoles(IEnumerable<Polus.RoleCore.RoleDefinition> definitions)
+    public static void RegisterRoles(IEnumerable<RoleDefinition> definitions)
     {
         Roles.Clear();
         Actions.Clear();
         MeetingActions.Clear();
+        var api = MiraApi.Instance;
+        api.Roles.Clear();
 
         foreach (var role in definitions)
         {
-            Roles.Add(role.Id, new CustomRole(role.Id, role.Name, role.Team.ToString(), role.Description));
-            Actions.Add(role.Id, new ActionButton(role.Id, role.Name + " Ability",
-                Math.Clamp(role.CooldownSeconds, 0, 600), 1));
+            var roleId = role.Id;
+            Roles[roleId] = new CustomRole(roleId, role.Name, role.Team.ToString(), role.Description);
+            Actions[roleId] = new ActionButton(roleId, role.Name + " Ability",
+                Math.Clamp(role.CooldownSeconds, 0, 600), int.MaxValue);
+            api.Roles.Register(new MiraRole(roleId, role.Name, role.Team.ToString(),
+                role.Description, HostOnly: true, CooldownSeconds: Math.Clamp(role.CooldownSeconds, 0, 600),
+                MaxUses: int.MaxValue));
+            api.Buttons.Register(new MiraButton(roleId, roleId, role.Name + " Ability",
+                Math.Clamp(role.CooldownSeconds, 0, 600), int.MaxValue,
+                context =>
+                {
+                    var player = PolusAndroidMod.GetPlayerForApi(context.PlayerId);
+                    var transform = player == null ? null : PolusAndroidMod.GetMemberForApi(player, "transform");
+                    var position = transform == null ? UnityEngine.Vector3.zero :
+                        (UnityEngine.Vector3)(PolusAndroidMod.GetMemberForApi(transform, "position") ?? UnityEngine.Vector3.zero);
+                    return AndroidRoleMechanics.Activate(roleId, context.PlayerId, position);
+                }));
 
-            if (role.Id is "auditor" or "mediator" or "beaconist" or "calibrator" or "signalwright" or "broker")
-                MeetingActions.Add(role.Id, new MeetingButton(role.Id, role.Name + " Meeting Ability", 1));
+            if (roleId is "auditor" or "mediator" or "beaconist" or "calibrator" or "signalwright" or "broker")
+            {
+                MeetingActions[roleId] = new MeetingButton(roleId, role.Name + " Meeting Ability", 1);
+                api.MeetingButtons.Register(new MiraMeetingButton(roleId, roleId,
+                    role.Name + " Meeting Ability", 1,
+                    context => AndroidRoleMechanics.UseMeetingAbility(roleId, context.PlayerId)));
+            }
         }
     }
 
@@ -41,4 +60,12 @@ internal static class AndroidMiraApi
         Actions.TryGetValue(roleId, out var button) ? button : null;
     public static MeetingButton? GetMeetingButton(string roleId) =>
         MeetingActions.TryGetValue(roleId, out var button) ? button : null;
+
+    public static bool TryUseAction(string roleId, byte playerId, bool isHost, out string result) =>
+        MiraApi.Instance.Buttons.TryUse(roleId,
+            new MiraActionContext(playerId, isHost, DateTimeOffset.UtcNow), out result);
+
+    public static bool TryUseMeeting(string roleId, byte playerId, bool isHost, int meetingNumber, out string result) =>
+        MiraApi.Instance.MeetingButtons.TryUse(roleId,
+            new MiraMeetingContext(playerId, isHost, meetingNumber), out result);
 }
