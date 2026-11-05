@@ -11,7 +11,7 @@ namespace Polus.Patcher;
 
 public sealed class MainForm : Form
 {
-    private const string RepoOwner = "Tvmanalt";
+    private const string RepoOwner = "Tvmanisback";
     private const string RepoName = "Polus";
     private const string BepInExBuildsPage = "https://builds.bepinex.dev/projects/bepinex_be";
     private static readonly HttpClient Http = CreateHttpClient();
@@ -53,7 +53,10 @@ public sealed class MainForm : Form
             using var stream = typeof(MainForm).Assembly.GetManifestResourceStream("Polus.Patcher.index.html")
                 ?? throw new InvalidOperationException("The shared Polus patcher HTML resource is missing.");
             using var reader = new StreamReader(stream);
+            var navigation = new TaskCompletionSource<bool>();
+            browser.CoreWebView2.NavigationCompleted += (_, _) => navigation.TrySetResult(true);
             browser.NavigateToString(await reader.ReadToEndAsync());
+            await navigation.Task;
             browserReady = true;
             await browser.CoreWebView2.ExecuteScriptAsync("window.Polus && window.Polus.platform('pc')");
             await UpdateBrowserAsync("path", gamePath ?? "");
@@ -85,7 +88,7 @@ public sealed class MainForm : Form
     private async Task UpdateBrowserAsync(string method, params object[] values)
     {
         if (!browserReady || browser.CoreWebView2 == null) return;
-        var args = string.Join(",", values.Select(JsonSerializer.Serialize));
+        var args = string.Join(",", values.Select(value => JsonSerializer.Serialize(value)));
         await browser.CoreWebView2.ExecuteScriptAsync($"window.Polus && window.Polus.{method}({args})");
     }
 
