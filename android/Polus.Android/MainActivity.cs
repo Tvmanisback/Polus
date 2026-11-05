@@ -4,6 +4,7 @@ using Android.Content.PM;
 using Android.OS;
 using Android.Widget;
 using Android.Webkit;
+using Java.Interop;
 using MelonLoader.Installer.Core;
 
 namespace Polus.Android;
@@ -258,7 +259,6 @@ public sealed class MainActivity : Activity, IPatchLogger
 }
 
 
-[Android.Runtime.Preserve(AllMembers = true)]
 public sealed class PolusAndroidBridge
 {
     private readonly MainActivity _activity;
