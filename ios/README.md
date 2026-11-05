@@ -22,6 +22,14 @@ The first target is a custom region named **Polus iOS**. The region entry will p
 - `modes/README.md` — mode requirements and compatibility boundaries.
 - `server/README.md` — server and hosting requirements.
 
+## Browser terminal for development
+
+The repository includes a GitHub Codespaces environment. Open the Polus repository, choose **Code → Codespaces → Create codespace on main**, and wait for the browser editor and terminal to load.
+
+The environment provides .NET 6/8/9 and Java 17. It is intended for compiling, running tests, and launching a development server while the Codespace is active. See [the Codespaces setup notes](../.devcontainer/README.md).
+
+Codespaces is not permanent hosting: it can stop when idle and the free personal-account quota is limited. Do not enable paid overages just to keep a test server running.
+
 ## Free hosting target
 
 The preferred target is a free service that can keep the required HTTPS/WebSocket endpoint available. GitHub Pages can host static setup files, but it cannot run the live game server. GitHub Actions is build automation, not a 24/7 server.
