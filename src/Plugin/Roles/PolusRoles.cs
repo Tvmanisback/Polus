@@ -239,7 +239,7 @@ public sealed class CuratorRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 4;
     public override string IdPart => "curator";
     public override string RoleName => "Curator";
-    public override string RoleDescription => "Collects one artifact for each distinct task type completed.";
+    public override string RoleDescription => "Catalogues each unique combination of task type and map sector.";
 }
 
 public sealed class WayfinderRole : PolusNeutralRole
