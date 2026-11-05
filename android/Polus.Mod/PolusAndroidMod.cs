@@ -86,7 +86,7 @@ public sealed class PolusAndroidMod : MelonMod
                 {
                     var sharedDecision = SharedEffects.TryUseMeetingAbility(meetingPlayerId.Value, out var meetingCommand);
                     if (!sharedDecision.Accepted) _status = sharedDecision.Message;
-                    else if (PolusHostRoles.TryUseMeetingAbility(meetingRole.Id, meetingPlayerId.Value, IsHost(), out var adapterMessage))
+                    else if (AndroidRoleEffectAdapter.Execute(meetingPlayerId.Value, meetingCommand, out var adapterMessage))
                         _status = meetingCommand.Message + " " + adapterMessage;
                     else _status = adapterMessage;
                 }
@@ -267,16 +267,14 @@ public sealed class PolusAndroidMod : MelonMod
         }
         var effectDecision = SharedEffects.TryUseAbility(playerId, DateTimeOffset.UtcNow, assigned.CooldownSeconds, out var effectCommand);
         if (!effectDecision.Accepted) { _status = effectDecision.Message; return; }
-        var result = SharedRoleEngine.TryUseAbility(playerId, DateTimeOffset.UtcNow, assigned.CooldownSeconds);
-        if (!result.Accepted) { _status = result.Message; return; }
-        if (!PolusHostRoles.TryUseAction(assigned.Id, playerId, IsHost(), out var actionResult))
+        if (!AndroidRoleEffectAdapter.Execute(playerId, effectCommand, out var actionResult))
         {
             _status = actionResult;
             return;
         }
         var uses = AbilityUses.GetValueOrDefault(playerId) + 1;
         AbilityUses[playerId] = uses;
-        _status = assigned.Name + ": " + actionResult + " [" + effectCommand.Kind + "]";
+        _status = assigned.Name + ": " + actionResult;
     }
     private void RequestMeeting()
     {
@@ -377,6 +375,7 @@ public sealed class PolusAndroidMod : MelonMod
         return result.Distinct().ToList();
     }
 
+    internal static bool IsHostForApi() => IsHost();
     internal static object? GetPlayerForApi(byte playerId) => GetPlayerById(playerId);
     internal static object? GetMemberForApi(object target, string name) => GetMember(target, name);
 
