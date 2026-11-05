@@ -16,10 +16,11 @@ internal static class AndroidRoleEffectAdapter
     {
         foreach (var item in SpriteRestoreAt.Where(x => Time.time >= x.Value).ToArray())
         {
-            if (item.Key != null && OriginalSpriteColors.TryGetValue(item.Key, out var color))
-                item.Key.color = color;
-            SpriteRestoreAt.Remove(item.Key);
-            OriginalSpriteColors.Remove(item.Key);
+            var sprite = item.Key;
+            if (!ReferenceEquals(sprite, null) && OriginalSpriteColors.TryGetValue(sprite, out var color))
+                sprite.color = color;
+            SpriteRestoreAt.Remove(sprite!);
+            OriginalSpriteColors.Remove(sprite!);
         }
 
         foreach (var item in OutlineRestoreAt.Where(x => Time.time >= x.Value).ToArray())
@@ -58,7 +59,7 @@ internal static class AndroidRoleEffectAdapter
                     or "delivery_ledger" or "event_ledger" or "beacon_status" or "mediation_status"
                     or "calibration_status" or "signal_chain_status" or "store_checkpoint"
                     or "private_decoy_entry" or "emit_signal_cue" or "record_trade"
-                    or "scramble_private_ledger" or "show_objective_progress" => true,
+                    or "scramble_private_ledger" or "show_objective_progress" => ShowStatus(command.Message),
                 _ => false
             };
             if (!ok) result = command.Message + " (this game version did not expose the required action)";
@@ -69,6 +70,12 @@ internal static class AndroidRoleEffectAdapter
             result = "Role effect could not be applied: " + ex.Message;
             return false;
         }
+    }
+
+    private static bool ShowStatus(string message)
+    {
+        PolusAndroidMod.SetStatusForApi(message);
+        return true;
     }
 
     private static bool EmergencyMeeting(object actor)
