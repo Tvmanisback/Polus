@@ -108,7 +108,7 @@ public sealed class PolusHostPanel : MonoBehaviour
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Crew vision x2")) ApplyPrivateSetting(FloatOptionNames.CrewmateLightMod, 2f);
+            if (GUILayout.Button("Crew vision x2")) ApplyPrivateSetting(FloatOptionNames.CrewLightMod, 2f);
             if (GUILayout.Button("Impostor vision x2")) ApplyPrivateSetting(FloatOptionNames.ImpostorLightMod, 2f);
             GUILayout.EndHorizontal();
 
@@ -120,7 +120,7 @@ public sealed class PolusHostPanel : MonoBehaviour
             if (GUILayout.Button("Reset gameplay settings"))
             {
                 ApplyPrivateSetting(FloatOptionNames.PlayerSpeedMod, 1f);
-                ApplyPrivateSetting(FloatOptionNames.CrewmateLightMod, 1f);
+                ApplyPrivateSetting(FloatOptionNames.CrewLightMod, 1f);
                 ApplyPrivateSetting(FloatOptionNames.ImpostorLightMod, 1.5f);
                 ApplyPrivateSetting(FloatOptionNames.KillCooldown, 30f);
             }
@@ -144,7 +144,7 @@ public sealed class PolusHostPanel : MonoBehaviour
             var manager = GameOptionsManager.Instance;
             var options = manager.CurrentGameOptions;
             options.SetFloat(option, value);
-            var bytes = manager.GameOptionsFactory.ToBytes(
+            var bytes = manager.gameOptionsFactory.ToBytes(
                 options, AprilFoolsMode.IsAprilFoolsModeToggledOn);
             PlayerControl.LocalPlayer.RpcSyncSettings(bytes);
         }
