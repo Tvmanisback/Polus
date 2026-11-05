@@ -1,0 +1,87 @@
+name: Temporary iOS test server
+
+on:
+  workflow_dispatch:
+    inputs:
+      duration_minutes:
+        description: How long to keep the temporary test server running
+        required: true
+        type: choice
+        default: "10"
+        options:
+          - "5"
+          - "10"
+          - "15"
+          - "20"
+
+permissions:
+  contents: read
+
+jobs:
+  temporary-server:
+    name: Start temporary Impostor server
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Download Impostor runtime
+        run: bash ios/server/download-impostor.sh
+
+      - name: Build Polus server plugin
+        run: dotnet build ios/Polus.ServerPlugin/Polus.ServerPlugin.csproj -c Release
+
+      - name: Start matchmaking and game server
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOG="$RUNNER_TEMP/polus-temporary-server.log"
+          POLUS_UDP_HOST=127.0.0.1 bash ios/server/run-local.sh >"$LOG" 2>&1 &
+          SERVER_PID=$!
+          echo "$SERVER_PID" > "$RUNNER_TEMP/polus-server.pid"
+
+          cleanup() {
+            kill "$SERVER_PID" 2>/dev/null || true
+            wait "$SERVER_PID" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          echo "Waiting for Impostor and the Polus plugin..."
+          for attempt in $(seq 1 90); do
+            if grep -q "Polus iOS server plugin enabled" "$LOG"; then
+              break
+            fi
+            if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+              cat "$LOG"
+              echo "The temporary server exited during startup."
+              exit 1
+            fi
+            sleep 1
+          done
+
+          if ! grep -q "Polus iOS server plugin enabled" "$LOG"; then
+            cat "$LOG"
+            echo "The Polus plugin did not load."
+            exit 1
+          fi
+
+          if ! curl --silent --show-error --max-time 5 -o /dev/null http://127.0.0.1:22023/; then
+            cat "$LOG"
+            echo "The matchmaking HTTP listener did not respond."
+            exit 1
+          fi
+
+          echo "PASS: matchmaking listener responded and Polus.ServerPlugin loaded."
+          echo "The Impostor process is hosting its HTTP matchmaking and UDP game listeners."
+          echo "This GitHub-hosted runner is temporary and is not a public/reachable game host."
+          echo "Keeping the test process alive for ${{ inputs.duration_minutes }} minutes."
+          sleep "$(( ${{ inputs.duration_minutes }} * 60 ))"
+
+          echo "Temporary server test window finished."
+          cat "$LOG"
