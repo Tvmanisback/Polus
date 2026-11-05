@@ -17,6 +17,10 @@ public static class PolusRoleMechanics
         public bool HasLastPosition;
         public readonly HashSet<string> Types = new();
         public readonly HashSet<string> Sectors = new();
+        public readonly HashSet<string> TypeSectorPairs = new();
+        public readonly HashSet<string> TaskPairs = new();
+        public string LastSector = "";
+        public int RouteStops;
         public readonly List<string> Ledger = new();
     }
 
@@ -37,7 +41,13 @@ public static class PolusRoleMechanics
         s.LastPosition = player.transform.position;
         s.HasLastPosition = true;
         s.Types.Add(type);
-        s.Sectors.Add(Sector(player.transform.position));
+        var sector = Sector(player.transform.position);
+        s.Sectors.Add(sector);
+        s.TypeSectorPairs.Add(type + "@" + sector);
+        if (s.LastType.Length > 0 && s.LastType != type)
+            s.TaskPairs.Add(string.CompareOrdinal(s.LastType, type) < 0 ? s.LastType + "|" + type : type + "|" + s.LastType);
+        if (s.LastSector != sector) s.RouteStops++;
+        s.LastSector = sector;
         s.Ledger.Add(type);
         if (s.Ledger.Count > 40) s.Ledger.RemoveAt(0);
         s.Streak = s.LastType == type ? s.Streak + 1 : 1;
@@ -55,15 +65,15 @@ public static class PolusRoleMechanics
             case CalibratorRole: s.Progress = s.Streak; break;
             case SignalwrightRole: s.Progress = s.Chain; break;
             case TimekeeperRole: s.Progress = s.Tasks - s.Snapshot; break;
-            case JigsawRole:
-            case CollectorRole: s.Progress = s.Types.Count; break;
+            case JigsawRole: s.Progress = s.Types.Count; break;
+            case CollectorRole: s.Progress = s.Sectors.Count; break;
             case PilgrimRole: s.Progress = s.LastType != type ? s.Progress + 1 : 0; break;
-            case CuratorRole: s.Progress = s.Types.Count + Math.Max(0, s.Sectors.Count - 1); break;
-            case WayfinderRole:
+            case CuratorRole: s.Progress = s.TypeSectorPairs.Count; break;
+            case WayfinderRole: s.Progress = s.RouteStops; break;
             case NomadRole: s.Progress = s.Sectors.Count; break;
             case MetronomeRole: s.Progress = gap >= 3f && gap <= 15f ? s.Progress + 1 : 1; break;
-            case CartoucheRole:
-            case WeathervaneRole: s.Progress = s.Chain; break;
+            case CartoucheRole: s.Progress = s.TaskPairs.Count; break;
+            case WeathervaneRole: s.Progress = s.Chain / 2; break;
             case LighthouseRole: if (s.Tasks % 2 == 0) s.Progress++; break;
             case PuzzlewrightRole: s.Progress = s.Streak == 1 ? s.Progress + 1 : 0; break;
             case TimeCapsuleRole: s.Progress = s.Tasks - s.Snapshot; break;
