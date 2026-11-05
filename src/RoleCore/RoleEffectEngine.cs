@@ -18,6 +18,8 @@ public sealed class RoleEffectEngine
         public string LastTask = "";
         public string LastSector = "";
         public string LastPosition = "";
+        public float LastX;
+        public float LastY;
         public readonly HashSet<string> TaskTypes = new(StringComparer.OrdinalIgnoreCase);
         public readonly HashSet<string> Sectors = new(StringComparer.Ordinal);
         public readonly HashSet<string> TypeSectorPairs = new(StringComparer.OrdinalIgnoreCase);
@@ -81,6 +83,8 @@ public sealed class RoleEffectEngine
             s.LastSector = sector;
             s.LastTask = taskType;
             s.LastPosition = sector;
+            s.LastX = x;
+            s.LastY = y;
             s.Ledger.Add(taskType);
             if (s.Ledger.Count > 40) s.Ledger.RemoveAt(0);
 
@@ -192,7 +196,7 @@ public sealed class RoleEffectEngine
                 var audited = s.Tasks - s.Snapshot; s.Snapshot = s.Tasks;
                 return Cmd("audit_checkpoint", $"Audit checkpoint: {audited} tasks.", audited);
             case "relay": return Cmd("decode_signal", $"Decoded signals: {s.Tasks / 2}.", s.Tasks / 2);
-            case "quartermaster": return s.Tasks >= 4 ? Cmd("emergency_meeting", "Quartermaster supply call unlocked.", 1) : Cmd("ability_notice", $"Complete four tasks ({s.Tasks}/4).", s.Tasks);
+            case "quartermaster": return s.Tasks >= 4 ? Cmd("emergency_meeting", "Quartermaster emergency call.", 1) : RoleEffectCommand.None;
             case "courier": return Cmd("delivery_ledger", $"Deliveries: {s.Tasks}.", s.Tasks);
             case "archivist": return Cmd("event_ledger", $"Archive entries: {s.Ledger.Count}.", s.Ledger.Count);
             case "beaconist": return Cmd("beacon_status", $"Beacon charge: {s.Tasks / 2}.", s.Tasks / 2);
@@ -206,12 +210,12 @@ public sealed class RoleEffectEngine
             case "echoist": s.Progress++; return Cmd("emit_signal_cue", "Signal cue emitted.", s.Progress);
             case "blackout_artist": s.Progress++; return Cmd("temporary_self_visual", "Temporary self-only visual effect requested.", 8);
             case "broker": s.Progress++; return Cmd("record_trade", "Trade recorded.", s.Progress);
-            case "decoyist": s.Progress++; return Cmd("snap_to_nearest_player", "Decoy reposition requested.", s.Progress);
-            case "switchboarder": s.Progress++; return Cmd("swap_with_nearest_player", "Position swap requested.", s.Progress);
+            case "decoyist": s.Progress++; return Cmd("snap_to_nearest_player", "Decoy reposition activated.", s.Progress);
+            case "switchboarder": s.Progress++; return Cmd("swap_with_nearest_player", "Position exchange activated.", s.Progress);
             case "weathermaker": s.Progress++; return Cmd("temporary_self_palette", "Temporary palette change requested.", 8);
-            case "misdirector": return string.IsNullOrEmpty(s.LastPosition) ? Cmd("ability_notice", "No checkpoint is available yet.", 0) : Cmd("return_to_last_sector", "Return to the last task sector requested.", 1);
+            case "misdirector": return string.IsNullOrEmpty(s.LastPosition) ? RoleEffectCommand.None : new RoleEffectCommand("return_to_last_sector", "Returned to the last task checkpoint.", 1, s.LastX, s.LastY);
             case "scrambler": s.Ledger.Reverse(); s.Progress++; return Cmd("scramble_private_ledger", "Private event ledger reordered.", s.Progress);
-            case "parasitic_signal": s.Progress++; return Cmd("mark_nearest_player", "Signal marker requested for the nearest player.", 8);
+            case "parasitic_signal": s.Progress++; return Cmd("mark_nearest_player", "Signal marker attached.", 8);
             case "jigsaw": case "pilgrim": case "curator": case "wayfinder": case "metronome":
             case "cartouche": case "lighthouse": case "weathervane": case "puzzlewright": case "nomad":
                 return Cmd("show_objective_progress", $"{s.RoleId}: objective progress {s.Progress}.", s.Progress);
@@ -230,7 +234,7 @@ public sealed class RoleEffectEngine
 }
 
 /// <summary>Semantic effect request for a platform adapter; never a raw network packet.</summary>
-public sealed record RoleEffectCommand(string Kind, string Message, int Value)
+public sealed record RoleEffectCommand(string Kind, string Message, int Value, float X = 0f, float Y = 0f)
 {
     public static RoleEffectCommand None { get; } = new("none", "", 0);
 }
