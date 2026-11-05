@@ -65,8 +65,7 @@ jobs:
             adb shell monkey -p com.tvmanisback.poluscompanion 1
             sleep 12
             mkdir -p artifacts
-            adb shell screencap -p /sdcard/polus-android-patcher.png
-            adb pull /sdcard/polus-android-patcher.png artifacts/polus-android-patcher.png
+            adb exec-out screencap -p > artifacts/polus-android-patcher.png
             test -s artifacts/polus-android-patcher.png
       - name: Upload Android UI screenshot
         uses: actions/upload-artifact@v4
