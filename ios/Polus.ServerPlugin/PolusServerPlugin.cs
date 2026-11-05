@@ -378,6 +378,9 @@ internal sealed class ModeCommandListener : IEventListener
             return;
         }
 
+        // Switching between modes always starts from the captured vanilla settings,
+        // so settings from Random Chaos cannot leak into the next selected preset.
+        session.OriginalSettings?.Restore(options);
         options.NumImpostors = 1;
         switch (mode)
         {
