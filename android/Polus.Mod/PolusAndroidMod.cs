@@ -1,4 +1,3 @@
-using Polus.MiraApi.Android;
 using System.Collections;
 using System.Reflection;
 using System.Text.Json;
@@ -34,7 +33,7 @@ public sealed class PolusAndroidMod : MelonMod
     {
         _modeFile = Path.Combine(Application.persistentDataPath, "Polus.mode");
         _catalog = LoadCatalog();
-        AndroidMiraApi.RegisterRoles(_catalog);
+        PolusHostRoles.RegisterRoles(_catalog);
         _choiceMade = false;
         _moddedMode = false;
         LoggerInstance.Msg("Polus Android loaded. Choose Vanilla or Polus Modded on every launch.");
@@ -42,7 +41,7 @@ public sealed class PolusAndroidMod : MelonMod
 
     public override void OnUpdate()
     {
-        if (MiraApi.Instance.Keybinds.TryGet("polus.menu", out var menuKey)
+        if (PolusHostRoles.TryGetKeybind("polus.menu", out var menuKey)
             && Enum.TryParse<KeyCode>(menuKey, true, out var key)
             && Input.GetKeyDown(key) && _choiceMade && _moddedMode)
             _panelOpen = !_panelOpen;
@@ -67,7 +66,7 @@ public sealed class PolusAndroidMod : MelonMod
         var localId = GetLocalPlayerId();
         if (localId.HasValue && AssignedRoles.TryGetValue(localId.Value, out var role))
         {
-            var actionButton = AndroidMiraApi.GetActionButton(role.Id);
+            var actionButton = PolusHostRoles.GetActionButton(role.Id);
             var label = actionButton?.Label ?? (role.Name + "  •  ABILITY");
             if (GUI.Button(new Rect(Screen.width - 190, Screen.height - 92, 178, 68), label))
                 RequestAbility(localId.Value, role);
@@ -78,7 +77,7 @@ public sealed class PolusAndroidMod : MelonMod
             GUI.Label(new Rect(12, Screen.height - 36, 320, 28), "POLUS MEETING");
             var meetingPlayerId = GetLocalPlayerId();
             if (meetingPlayerId.HasValue && AssignedRoles.TryGetValue(meetingPlayerId.Value, out var meetingRole)
-                && AndroidMiraApi.GetMeetingButton(meetingRole.Id) != null
+                && PolusHostRoles.HasMeetingButton(meetingRole.Id)
                 && AndroidRoleMechanics.HasMeetingAbility(meetingRole.Id, meetingPlayerId.Value))
             {
                 if (GUI.Button(new Rect(12, Screen.height - 92, 178, 48), "MEETING ABILITY"))
@@ -108,14 +107,14 @@ public sealed class PolusAndroidMod : MelonMod
         foreach (var roleOption in _catalog)
         {
             var enabledKey = "role." + roleOption.Id + ".enabled";
-            var enabled = MiraApi.Instance.Options.Get(enabledKey, roleOption.EnabledByDefault);
+            var enabled = PolusHostRoles.GetOption(enabledKey, roleOption.EnabledByDefault);
             var nextEnabled = GUILayout.Toggle(enabled, "Enable " + roleOption.Name);
-            if (nextEnabled != enabled) MiraApi.Instance.Options.Set(enabledKey, nextEnabled);
+            if (nextEnabled != enabled) PolusHostRoles.SetOption(enabledKey, nextEnabled);
             var weightKey = "role." + roleOption.Id + ".spawnWeight";
-            var weight = MiraApi.Instance.Options.Get(weightKey, roleOption.SpawnChance);
+            var weight = PolusHostRoles.GetOption(weightKey, roleOption.SpawnChance);
             GUILayout.Label(roleOption.Name + " spawn weight: " + weight);
             var nextWeight = Mathf.RoundToInt(GUILayout.HorizontalSlider(weight, 0, 100));
-            if (nextWeight != weight) MiraApi.Instance.Options.Set(weightKey, nextWeight);
+            if (nextWeight != weight) PolusHostRoles.SetOption(weightKey, nextWeight);
         }
         GUILayout.EndScrollView();
         GUILayout.Space(8);
@@ -212,30 +211,15 @@ public sealed class PolusAndroidMod : MelonMod
 
         try
         {
-            var pluginCatalog = MiraApi.Instance.Roles.All
-                .Where(apiRole => !_catalog.Any(existing => existing.Id.Equals(apiRole.Id, StringComparison.OrdinalIgnoreCase)))
-                .Select(apiRole => new RoleDefinition(
-                    apiRole.Id,
-                    apiRole.Name,
-                    Enum.TryParse<RoleTeam>(apiRole.Team, true, out var parsedTeam) ? parsedTeam : RoleTeam.Crewmate,
-                    apiRole.Description,
-                    EnabledByDefault: true,
-                    SpawnChance: 50,
-                    CooldownSeconds: Math.Clamp(apiRole.CooldownSeconds, 0, 600),
-                    Mechanic: "Android MiraAPI plugin role",
-                    WinCondition: "Complete the role objective",
-                    Status: "plugin"))
-                .ToArray();
-            var allRoles = _catalog.Concat(pluginCatalog).ToArray();
-            var configuredCatalog = allRoles.Select(r => r with
+            var configuredCatalog = _catalog.Select(r => r with
             {
-                SpawnChance = Math.Clamp(MiraApi.Instance.Options.Get("role." + r.Id + ".spawnWeight", r.SpawnChance), 0, 100)
+                SpawnChance = Math.Clamp(PolusHostRoles.GetOption("role." + r.Id + ".spawnWeight", r.SpawnChance), 0, 100)
             }).ToArray();
             var enabled = configuredCatalog.ToDictionary(r => r.Id,
-                r => MiraApi.Instance.Options.Get("role." + r.Id + ".enabled", r.EnabledByDefault), StringComparer.OrdinalIgnoreCase);
+                r => PolusHostRoles.GetOption("role." + r.Id + ".enabled", r.EnabledByDefault), StringComparer.OrdinalIgnoreCase);
             var settings = HostSettingsValidator.Validate(new HostSettings(true, 3, false, enabled));
             _hostRuntime = new RoleMatchRuntime(true);
-            MiraApi.Instance.ResetMatch();
+            PolusHostRoles.ResetMatch();
             AndroidRoleMechanics.Reset();
             _meetingNumber = 0;
             var assignments = _hostRuntime.StartMatch(players.Select(p => new PlayerSlot(p)).ToArray(),
@@ -246,8 +230,6 @@ public sealed class PolusAndroidMod : MelonMod
                 foreach (var item in assignments)
                 {
                     AssignedRoles[item.PlayerId] = item.Role;
-                    if (MiraApi.Instance.Roles.TryGet(item.Role.Id, out var miraRole))
-                        MiraApi.Instance.Events.Publish(new MiraRoleAssignedEvent(item.PlayerId, miraRole));
                 }
             }
             _status = $"Assigned {assignments.Count} host-tracked roles. Only the host runs Polus.";
@@ -271,7 +253,7 @@ public sealed class PolusAndroidMod : MelonMod
         }
         var result = _hostRuntime.TryUseAbility(playerId, DateTimeOffset.UtcNow);
         if (!result.Accepted) { _status = result.Message; return; }
-        if (!AndroidMiraApi.TryUseAction(assigned.Id, playerId, IsHost(), out var actionResult))
+        if (!PolusHostRoles.TryUseAction(assigned.Id, playerId, IsHost(), out var actionResult))
         {
             _status = actionResult;
             return;
@@ -279,7 +261,6 @@ public sealed class PolusAndroidMod : MelonMod
         var uses = AbilityUses.GetValueOrDefault(playerId) + 1;
         AbilityUses[playerId] = uses;
         _status = assigned.Name + ": " + actionResult;
-        MiraApi.Instance.Events.Publish(new MiraAbilityUsedEvent(playerId, assigned.Id, actionResult));
     }
     private void RequestMeeting()
     {
@@ -301,7 +282,6 @@ public sealed class PolusAndroidMod : MelonMod
     {
         _meetingOpen = true;
         _meetingNumber++;
-        MiraApi.Instance.Events.Publish(new MiraMeetingStartedEvent(_meetingNumber));
         var localId = GetLocalPlayerId();
         var local = GetLocalPlayer();
         if (localId.HasValue && local != null && AssignedRoles.TryGetValue(localId.Value, out var role))
@@ -315,9 +295,7 @@ public sealed class PolusAndroidMod : MelonMod
 
     private static void GameEndedPostfix()
     {
-        var reason = MiraApi.Instance.GameEndConditions.TryEvaluate(out var customReason)
-            ? customReason : "Among Us game ended.";
-        MiraApi.Instance.Events.Publish(new MiraGameEndedEvent(reason));
+        PolusHostRoles.OnGameEnded();
     }
 
     private static void VoteCastPostfix(object[] __args)
@@ -327,8 +305,7 @@ public sealed class PolusAndroidMod : MelonMod
         {
             var voter = Convert.ToByte(__args[0]);
             byte? target = __args[1] == null ? null : Convert.ToByte(__args[1]);
-            MiraApi.Instance.Voting.RecordHostObservedVote(voter, target, isHost: true);
-            MiraApi.Instance.Events.Publish(new MiraVoteRecordedEvent(voter, target, IsHost()));
+            PolusHostRoles.RecordObservedVote(voter, target, IsHost());
         }
         catch (Exception ex) { MelonLogger.Warning("Vote observer hook failed: " + ex.Message); }
     }
@@ -336,7 +313,6 @@ public sealed class PolusAndroidMod : MelonMod
     private static void MeetingEnding()
     {
         _meetingOpen = false;
-        MiraApi.Instance.Events.Publish(new MiraMeetingEndedEvent(_meetingNumber));
     }
 
     private static void TaskCompletedPostfix(object __instance, object[] __args)
