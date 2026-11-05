@@ -7,7 +7,7 @@ if [[ $# -lt 1 ]]; then
 fi
 
 HTTPS_URL="$1"
-OUTPUT="${2:-regionInfo.json}"
+OUTPUT="${2:-ios/config/region.json}"
 
 python3 - "${HTTPS_URL}" "${OUTPUT}" <<'PY'
 import json
@@ -60,6 +60,8 @@ regions = [
 ]
 region_info = {"CurrentRegionIdx": 3, "Regions": regions}
 pathlib.Path(output).write_text(json.dumps(region_info, indent=2) + "\n")
+pathlib.Path(output).parent.mkdir(parents=True, exist_ok=True)
+pathlib.Path(output).write_text(json.dumps(region_info, indent=2) + "\\n")
 print(f"Wrote {output}")
 print(f"Selected region: Polus iOS (https://{host}:443)")
 print("The server's UDP game address is configured separately in runtime/config.json.")
