@@ -1,0 +1,19 @@
+{
+  "CurrentRegionIdx": 3,
+  "Regions": [
+    {
+      "$type": "StaticHttpRegionInfo, Assembly-CSharp",
+      "Name": "Polus",
+      "PingServer": "polus.yapyur.org",
+      "Servers": [
+        {
+          "Name": "http-1",
+          "Ip": "http://polus.yapyur.org",
+          "Port": 25906,
+          "UseDtls": false
+        }
+      ],
+      "TranslateName": 1003
+    }
+  ]
+}
