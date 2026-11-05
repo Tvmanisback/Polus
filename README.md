@@ -1,5 +1,9 @@
 # Polus
 
+<div align="center">
+  <img src="icon.png" alt="Polus icon" width="220">
+</div>
+
 **A custom-role mod and Windows patcher for Among Us (Steam).**
 
 <div align="center">
