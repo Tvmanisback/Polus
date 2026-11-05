@@ -24,7 +24,7 @@ public abstract class PolusImpostorRole : ImpostorRole, ICustomRole
     public abstract string RoleName { get; }
     public abstract string RoleDescription { get; }
     public string RoleMedDescription => RoleDescription;
-    public string RoleLongDescription => RoleDescription;
+    public string RoleLongDescription => RoleDescription + $"\nAbility progress: {(Player ? PolusRoleEvents.GetRoleObjectiveProgress(Player.PlayerId) : 0)}";
     public Color RoleColor => new Color32(235, 80, 80, 255);
     public ModdedRoleTeams Team => ModdedRoleTeams.Impostor;
     public CustomRoleConfiguration Configuration => new(this) { DefaultRoleCount = 1, DefaultChance = 35, MaxRoleCount = 1 };
@@ -247,7 +247,7 @@ public sealed class WayfinderRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 6;
     public override string IdPart => "wayfinder";
     public override string RoleName => "Wayfinder";
-    public override string RoleDescription => "Advances its route objective by completing tasks in new map sectors.";
+    public override string RoleDescription => "Builds a route by moving between map sectors; each sector transition is a route stop.";
 }
 
 public sealed class CollectorRole : PolusNeutralRole
@@ -255,7 +255,7 @@ public sealed class CollectorRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 5;
     public override string IdPart => "collector";
     public override string RoleName => "Collector";
-    public override string RoleDescription => "Catalogues task types and new map sectors as unique collection entries.";
+    public override string RoleDescription => "Collects one artifact for each new map sector visited while completing tasks.";
 }
 
 public sealed class MetronomeRole : PolusNeutralRole
@@ -271,7 +271,7 @@ public sealed class CartoucheRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 4;
     public override string IdPart => "cartouche";
     public override string RoleName => "Cartouche";
-    public override string RoleDescription => "Builds a symbol sequence by completing different task types in a row.";
+    public override string RoleDescription => "Collects distinct pairs of task types as matching symbols.";
 }
 
 public sealed class LighthouseRole : PolusNeutralRole
@@ -287,7 +287,7 @@ public sealed class WeathervaneRole : PolusNeutralRole
     public override int ObjectiveTaskGoal => 5;
     public override string IdPart => "weathervane";
     public override string RoleName => "Weathervane";
-    public override string RoleDescription => "Builds prediction progress by alternating task types.";
+    public override string RoleDescription => "Builds prediction progress by maintaining a sequence of alternating task types.";
 }
 
 public sealed class PuzzlewrightRole : PolusNeutralRole
