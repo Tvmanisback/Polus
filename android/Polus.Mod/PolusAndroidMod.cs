@@ -69,7 +69,16 @@ public sealed class PolusAndroidMod : MelonMod
         }
 
         if (_meetingOpen)
-            GUI.Label(new Rect(12, Screen.height - 36, 320, 28), "Polus meeting hooks active");
+        {
+            GUI.Label(new Rect(12, Screen.height - 36, 320, 28), "POLUS MEETING");
+            var meetingPlayerId = GetLocalPlayerId();
+            if (meetingPlayerId.HasValue && AssignedRoles.TryGetValue(meetingPlayerId.Value, out var meetingRole)
+                && AndroidRoleMechanics.HasMeetingAbility(meetingRole.Id, meetingPlayerId.Value))
+            {
+                if (GUI.Button(new Rect(12, Screen.height - 92, 178, 48), "MEETING ABILITY"))
+                    _status = AndroidRoleMechanics.UseMeetingAbility(meetingRole.Id, meetingPlayerId.Value);
+            }
+        }
     }
 
     private void DrawModeSelector()
@@ -92,6 +101,12 @@ public sealed class PolusAndroidMod : MelonMod
             AssignRoles();
         if (GUILayout.Button("Call emergency meeting"))
             RequestMeeting();
+        var localPlayerId = GetLocalPlayerId();
+        if (localPlayerId.HasValue && AssignedRoles.TryGetValue(localPlayerId.Value, out var localRole))
+        {
+            GUILayout.Label("Role: " + localRole.Name);
+            GUILayout.Label("Progress: " + AndroidRoleMechanics.GetProgress(localPlayerId.Value, localRole.Id));
+        }
         if (GUILayout.Button("Hide menu"))
             _panelOpen = false;
         GUILayout.Space(8);
@@ -129,6 +144,7 @@ public sealed class PolusAndroidMod : MelonMod
         PatchByName("MeetingHud", "Start", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(MeetingStarted)));
         PatchByName("MeetingHud", "OnDestroy", prefix: AccessTools.Method(typeof(PolusAndroidMod), nameof(MeetingEnding)));
         PatchByName("PlayerControl", "HandleRpc", prefix: AccessTools.Method(typeof(PolusAndroidMod), nameof(HandleRpcPrefix)));
+        PatchByName("PlayerControl", "CompleteTask", postfix: AccessTools.Method(typeof(PolusAndroidMod), nameof(TaskCompletedPostfix)));
         _status = "Modded mode active. Host-authoritative role sync is enabled for Polus clients.";
     }
 
@@ -208,20 +224,17 @@ public sealed class PolusAndroidMod : MelonMod
             _status = "Host rejected an invalid role ability request.";
             return;
         }
-
         var result = _hostRuntime.TryUseAbility(playerId, DateTimeOffset.UtcNow);
-        if (!result.Accepted)
-        {
-            _status = result.Message;
-            return;
-        }
-
+        if (!result.Accepted) { _status = result.Message; return; }
+        var player = GetPlayerById(playerId);
+        var transform = player == null ? null : GetMember(player, "transform");
+        var position = transform == null ? Vector3.zero : (Vector3)(GetMember(transform, "position") ?? Vector3.zero);
+        var mechanicResult = AndroidRoleMechanics.Activate(assigned.Id, playerId, position);
         var uses = AbilityUses.GetValueOrDefault(playerId) + 1;
         AbilityUses[playerId] = uses;
-        _status = $"{assigned.Name}: host accepted ability request #{uses}.";
+        _status = assigned.Name + ": " + mechanicResult;
         SendRpc(RoleActionRpc, $"ACTION_OK|{playerId}|{assigned.Id}|{uses}");
     }
-
     private void RequestMeeting()
     {
         if (!IsHost()) { _status = "Only the host can request a meeting."; return; }
@@ -272,8 +285,34 @@ public sealed class PolusAndroidMod : MelonMod
         catch { /* Unknown or malformed mod RPCs must never interrupt the game RPC handler. */ }
     }
 
-    private static void MeetingStarted() => _meetingOpen = true;
+    private static void MeetingStarted()
+    {
+        _meetingOpen = true;
+        var localId = GetLocalPlayerId();
+        var local = GetLocalPlayer();
+        if (localId.HasValue && local != null && AssignedRoles.TryGetValue(localId.Value, out var role))
+        {
+            var transform = GetMember(local, "transform");
+            var position = transform == null ? Vector3.zero : (Vector3)(GetMember(transform, "position") ?? Vector3.zero);
+            AndroidRoleMechanics.OnMeeting(localId.Value, position, role.Id);
+        }
+    }
+
     private static void MeetingEnding() => _meetingOpen = false;
+
+    private static void TaskCompletedPostfix(object __instance, object[] __args)
+    {
+        if (!_moddedMode || __instance == null) return;
+        try
+        {
+            if (!TryGetByte(__instance, "PlayerId", out var playerId)) return;
+            var taskType = __args?.FirstOrDefault()?.ToString() ?? "task";
+            var transform = GetMember(__instance, "transform");
+            var position = transform == null ? Vector3.zero : (Vector3)(GetMember(transform, "position") ?? Vector3.zero);
+            AndroidRoleMechanics.RecordTask(playerId, position, taskType);
+        }
+        catch (Exception ex) { LoggerInstance.Warning("Task progress hook failed: " + ex.Message); }
+    }
 
     private static IReadOnlyList<RoleDefinition> LoadCatalog()
     {
@@ -294,6 +333,19 @@ public sealed class PolusAndroidMod : MelonMod
             foreach (var player in enumerable)
                 if (player != null && TryGetByte(player, "PlayerId", out var id)) result.Add(id);
         return result.Distinct().ToList();
+    }
+
+    private static object? GetPlayerById(byte playerId)
+    {
+        var type = AccessTools.TypeByName("PlayerControl");
+        var collection = type == null ? null : GetStaticMember(type, "AllPlayerControls");
+        if (collection is IEnumerable enumerable)
+        {
+            foreach (var player in enumerable)
+                if (player != null && TryGetByte(player, "PlayerId", out var id) && id == playerId)
+                    return player;
+        }
+        return null;
     }
 
     private static object? GetLocalPlayer()
