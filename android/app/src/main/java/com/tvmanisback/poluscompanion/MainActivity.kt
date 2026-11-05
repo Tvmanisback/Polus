@@ -2,6 +2,7 @@ package com.tvmanisback.poluscompanion
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,47 +13,67 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.google.android.gms.games.PlayGames
-import com.google.android.gms.games.PlayGamesSdk
 
 private const val AMONG_US_PACKAGE = "com.innersloth.spacemafia"
+private const val ANDROID_11_API = Build.VERSION_CODES.R
+
+data class CompatibilityResult(
+    val compatible: Boolean,
+    val message: String,
+    val amongUsInstalled: Boolean
+)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        PlayGamesSdk.initialize(this)
         setContent {
             MaterialTheme {
                 PolusScreen(
-                    onCheckPlayGames = { callback -> checkPlayGamesSignIn(callback) },
-                    isAmongUsInstalled = { isAmongUsInstalled() },
-                    onOpenAmongUs = { openAmongUs() }
+                    checkCompatibility = { checkCompatibility() },
+                    openAmongUs = { openAmongUs() }
                 )
             }
         }
     }
 
-    private fun checkPlayGamesSignIn(callback: (Boolean, String?) -> Unit) {
-        PlayGames.getGamesSignInClient(this)
-            .isAuthenticated
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful && task.result.isAuthenticated) {
-                    callback(true, null)
-                } else {
-                    callback(
-                        false,
-                        task.exception?.localizedMessage
-                            ?: "Play Games did not authenticate this app. The app may need Play Games Services configuration in Google Play Console."
-                    )
-                }
-            }
-    }
+    private fun checkCompatibility(): CompatibilityResult {
+        if (Build.VERSION.SDK_INT < ANDROID_11_API) {
+            return CompatibilityResult(
+                false,
+                "Not compatible: Polus Android requires Android 11 or newer. This device is running Android ${Build.VERSION.RELEASE}.",
+                false
+            )
+        }
 
-    private fun isAmongUsInstalled(): Boolean = try {
-        packageManager.getPackageInfo(AMONG_US_PACKAGE, 0)
-        true
-    } catch (_: PackageManager.NameNotFoundException) {
-        false
+        val amongUsInstalled = try {
+            packageManager.getPackageInfo(AMONG_US_PACKAGE, 0)
+            true
+        } catch (_: PackageManager.NameNotFoundException) {
+            false
+        }
+
+        if (!amongUsInstalled) {
+            return CompatibilityResult(
+                false,
+                "Android version supported, but the official Among Us app was not found. Install it from Google Play and run Setup again.",
+                false
+            )
+        }
+
+        val launchIntent = packageManager.getLaunchIntentForPackage(AMONG_US_PACKAGE)
+        if (launchIntent == null) {
+            return CompatibilityResult(
+                false,
+                "Among Us is installed, but Android did not provide a launchable activity for it.",
+                true
+            )
+        }
+
+        return CompatibilityResult(
+            true,
+            "Compatible device. Android 11+ is available and Among Us is installed.",
+            true
+        )
     }
 
     private fun openAmongUs() {
@@ -65,15 +86,10 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun PolusScreen(
-    onCheckPlayGames: ((Boolean, String?) -> Unit) -> Unit,
-    isAmongUsInstalled: () -> Boolean,
-    onOpenAmongUs: () -> Unit
+    checkCompatibility: () -> CompatibilityResult,
+    openAmongUs: () -> Unit
 ) {
-    var playGamesStatus by remember { mutableStateOf<String?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var busy by remember { mutableStateOf(false) }
-    var setupComplete by remember { mutableStateOf(false) }
-    var installed by remember { mutableStateOf(isAmongUsInstalled()) }
+    var result by remember { mutableStateOf<CompatibilityResult?>(null) }
 
     Surface(Modifier.fillMaxSize()) {
         Column(
@@ -81,65 +97,41 @@ private fun PolusScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text("POLUS", style = MaterialTheme.typography.displaySmall)
-            Text("Android companion", style = MaterialTheme.typography.titleMedium)
+            Text("Among Us Android companion", style = MaterialTheme.typography.titleMedium)
             HorizontalDivider()
 
-            Text("1. Google Play Games", style = MaterialTheme.typography.titleLarge)
-            Text("Polus checks the Play Games profile already active on this device using Google Play Games Services.")
+            Text("1. Setup", style = MaterialTheme.typography.titleLarge)
+            Text("Checks Android 11 or newer, verifies that Among Us is installed, and confirms that Android can launch it. Setup does not sign in, modify the original game, or require a Google Cloud project.")
             Button(
-                enabled = !busy,
                 modifier = Modifier.fillMaxWidth(),
-                onClick = {
-                    busy = true
-                    error = null
-                    onCheckPlayGames { authenticated, message ->
-                        playGamesStatus = if (authenticated) "Play Games profile authenticated" else null
-                        error = message
-                        busy = false
-                    }
-                }
-            ) { Text(if (busy) "Checking…" else "Check Play Games account") }
-            playGamesStatus?.let { Text(it) }
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                onClick = { result = checkCompatibility() }
+            ) { Text("Check compatibility") }
+
+            result?.let {
+                Text(
+                    it.message,
+                    color = if (it.compatible) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.error
+                )
+            } ?: Text("Compatibility has not been checked yet.")
 
             HorizontalDivider()
-            Text("2. Setup", style = MaterialTheme.typography.titleLarge)
-            Text("Checks for the official Among Us Android app. The original installation is not modified.")
+            Text("2. Patch", style = MaterialTheme.typography.titleLarge)
+            Text("Android patching is not available yet. This repository currently contains a Windows BepInEx IL2CPP plugin, which cannot run inside the Android version of Among Us. An Android-compatible plugin and loader integration are required before this button can safely install anything.")
             Button(
-                enabled = !busy,
-                modifier = Modifier.fillMaxWidth(),
-                onClick = {
-                    installed = isAmongUsInstalled()
-                    setupComplete = installed
-                }
-            ) { Text("Setup") }
-            Text(
-                if (setupComplete) "Setup complete — Among Us was found."
-                else if (installed) "Among Us is installed. Press Setup to check it."
-                else "Among Us was not found. Install the official game from Google Play first."
-            )
+                onClick = {},
+                enabled = false,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Patch — Android plugin required") }
 
             HorizontalDivider()
-            Text("3. Patch", style = MaterialTheme.typography.titleLarge)
-            Text("The Android Polus game plugin and patch payload are not implemented yet. Patching is disabled instead of pretending it succeeded.")
-            Button(onClick = {}, enabled = false, modifier = Modifier.fillMaxWidth()) {
-                Text("Patch — Android build not ready")
-            }
-
-            HorizontalDivider()
-            Text("4. Open", style = MaterialTheme.typography.titleLarge)
-            Text("Opens the separately installed official Among Us app. Its own account sign-in remains managed by Among Us.")
+            Text("3. Open Among Us", style = MaterialTheme.typography.titleLarge)
+            Text("Launches the official Among Us app without changing its existing account or installation.")
             Button(
-                enabled = installed,
-                onClick = onOpenAmongUs,
+                enabled = result?.compatible == true,
+                onClick = openAmongUs,
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Open Among Us") }
-
-            Text(
-                "Play Games authentication identifies the profile for Polus. It does not transfer that profile into Among Us or sign the game in.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }
