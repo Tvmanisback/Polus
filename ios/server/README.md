@@ -54,9 +54,9 @@ Commands only work when the vanilla client makes chat available. Hot Potato and 
 ## Networking facts
 
 - Among Us matchmaking uses Impostor's HTTP service.
-- Recent Among Us versions require HTTPS in front of that HTTP service.
+- The mobile `amongus://init` deep link adds a `StaticRegionInfo` entry and must use `usedtls=false` for custom servers.
 - Gameplay traffic uses a separate UDP listener on port 22023.
-- The HTTPS tunnel in run-https-tunnel.sh is for matchmaking only.
+- The optional HTTPS tunnel in run-https-tunnel.sh is for separate matchmaking experiments only.
 - A Codespaces forwarded TCP port cannot substitute for the UDP gameplay listener.
 
 ## Files
