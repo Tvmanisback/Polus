@@ -31,7 +31,9 @@ internal static class AndroidMiraApi
             Roles[roleId] = new CustomRole(roleId, role.Name, role.Team.ToString(), role.Description);
             Actions[roleId] = new ActionButton(roleId, role.Name + " Ability",
                 Math.Clamp(role.CooldownSeconds, 0, 600), int.MaxValue);
-            api.Options.Register(new MiraOption<bool>("role." + roleId + ".enabled", "Enable " + role.Name, true));\n            api.Options.Register(new MiraOption<int>("role." + roleId + ".spawnWeight", role.Name + " spawn weight", 100, 0, 100));\n            api.Roles.Register(new MiraRole(roleId, role.Name, role.Team.ToString(),
+            api.Options.Register(new MiraOption<bool>("role." + roleId + ".enabled", "Enable " + role.Name, role.EnabledByDefault));
+            api.Options.Register(new MiraOption<int>("role." + roleId + ".spawnWeight", role.Name + " spawn weight", role.SpawnChance, 0, 100));
+            api.Roles.Register(new MiraRole(roleId, role.Name, role.Team.ToString(),
                 role.Description, HostOnly: true, CooldownSeconds: Math.Clamp(role.CooldownSeconds, 0, 600),
                 MaxUses: int.MaxValue));
             api.Buttons.Register(new MiraButton(roleId, roleId, role.Name + " Ability",
