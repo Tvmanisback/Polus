@@ -24,7 +24,7 @@
 | --- | --- | --- |
 | **PC (Windows x64)** | Available | [**Download Polus.exe**](https://github.com/Tvmanisback/Polus/releases/download/1.1.0/Polus.exe) |
 | **Android** | APK release | [**Download Polus APK**](https://github.com/Tvmanisback/Polus/releases/download/1.1.0/com.tvmanisback.poluscompanion.apk) |
-| **iOS** | Unsupported | Not available |
+| **iOS** | Experimental | [Polus iOS development](ios/README.md) — no public server yet |
 
 **Windows:** Download and run `Polus.exe` directly; no ZIP extraction is required. **Android:** Download and install the APK, then open the Polus patcher. Android may require you to approve installation from your browser or file manager.
 
