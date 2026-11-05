@@ -1,49 +1,59 @@
 # Polus iOS
 
-Polus iOS is a separate, vanilla-client-compatible server project. It does **not** install the PC/Android role plugin and does not add custom roles to iOS. Its gameplay is intended to be based on server-controlled gamemodes.
+Polus iOS connects unmodified Among Us clients through a custom HTTPS matchmaking region and the Impostor UDP game server. It does not install the PC/Android role plugin or add custom client buttons.
 
 ## Current status
 
-**Experimental — local server runtime setup is in place; iOS device testing and Polus gamemodes are not yet verified.**
+**Experimental.** The server plugin now implements lobby chat commands for selecting three server-side modes. It has not yet been verified against an actual iPhone/iPad game session.
 
-The server uses the upstream Impostor C# implementation for Among Us networking. The pinned v1.10.9 release states support through Among Us 19.0. The Polus region file must point to a real HTTPS matchmaking endpoint, while the game server's UDP address is configured separately.
+## Server and plugin
 
-## Design
+The upstream Impostor v1.10.9 runtime handles Among Us matchmaking and game protocol traffic. Polus adds a server plugin built against Impostor.Api 1.10.9.
 
-- Keep the existing Windows and Android role systems unchanged.
-- iOS clients connect through a custom region entry.
-- The server owns mode state, timers, player assignments, and win conditions.
-- Use only game messages and fields that an unmodified Among Us client already understands. No custom iOS buttons or client-side UI are assumed.
-- Start with Hot Potato as the protocol proof-of-concept, then consider Infection and Hide & Seek after vanilla-client testing.
+Start the server with:
 
-## Folders
+    bash ios/server/run-local.sh
 
-- config/regionInfo.template.json — region-file template; replace its placeholder host before use.
-- modes/README.md — mode requirements and compatibility boundaries.
-- server/README.md — server setup, local iOS testing, and network requirements.
+This downloads the pinned server runtime, builds Polus.ServerPlugin, installs the plugin DLL, writes config.json, and launches the server.
 
-## Free local testing
+## Chat commands
 
-Follow [the iOS server guide](server/README.md). It downloads the official Impostor v1.10.9 server release, verifies the archive, starts the UDP game service, exposes the matchmaking HTTP endpoint through a temporary HTTPS tunnel, and generates a region file.
+The host selects a mode in the Among Us chat:
 
-The iOS device must be on the same Wi-Fi as the computer running the server. The HTTPS tunnel does not carry UDP gameplay packets.
+- /hotpotato — choose Hot Potato.
+- /infection — choose Infection.
+- /hideandseek — choose Hide & Seek.
+- /mode status — show the selected mode.
+- /mode off — disable Polus mode and restore the lobby settings.
+- /help — show commands.
 
-## Browser terminal
+During a round:
+- Hot Potato chooses a random carrier. The carrier can use /pass player when the vanilla chat is available.
+- Infection chooses a random patient zero. Infected players can use /infect player when chat is available.
+- Hide & Seek marks the impostor as seeker and applies the hide-and-seek lobby settings; normal task/elimination win conditions remain in use.
 
-The repository includes a GitHub Codespaces environment. Open the Polus repository, choose **Code → Codespaces → Create codespace on main**, and wait for the browser editor and terminal to load.
+These commands require the normal Among Us chat to be available. They do not create custom HUD buttons or client-side UI. The first two modes use chat-based passing/infection, not automatic touch detection.
 
-Codespaces is useful for editing and compiling. It forwards TCP ports only, while Among Us gameplay requires UDP, so a Codespace is not a playable iOS server host. See [the Codespaces setup notes](../.devcontainer/README.md).
+## Region file
 
-## Hosting
+The region generator creates a file named exactly **region.json**:
 
-GitHub Pages can host setup files but cannot run the live game server. GitHub Actions is build automation, not persistent hosting. Do not publish a region URL until both the HTTPS matchmaking endpoint and UDP gameplay endpoint are reachable and have been tested with unmodified iOS clients.
+    bash ios/server/make-region.sh https://YOUR-PUBLIC-HTTPS-MATCHMAKING-HOST
 
-## Release requirements
+By default it writes to ios/config/region.json. The HTTPS URL must point to the Impostor HTTP matchmaking service. The game server's UDP address is set separately in the server config.
 
-Before iOS is marked supported:
+The website also has a region.json generator in its iOS download card. It can share the file through the iOS share sheet when supported. A website cannot write directly into Among Us's private app storage, and there is no verified Among Us iOS deep-link contract here that can silently import the file and launch the game. If Among Us appears as a share target, select it; otherwise use the region import method supported by your device.
 
-1. Confirm the current Among Us iOS build accepts the region entry.
-2. Verify matchmaking, lobby creation, joining, and round start with unmodified clients.
-3. Verify server-controlled mode state survives reconnects and host departure.
-4. Test round end, meeting behavior, disconnects, and server restarts.
-5. Publish a real region file only after the endpoint is live and tested.
+## Codespaces testing
+
+Open the repository in Codespaces, then run:
+
+    bash ios/server/test-codespace.sh
+
+This smoke test builds the plugin, starts Impostor, checks that the plugin loaded, and checks that the TCP matchmaking listener responds.
+
+**Codespaces is not a full Among Us gameplay test host.** Its forwarded port can expose the HTTP matchmaking service over TCP, but Among Us game traffic uses UDP. A full iPhone test needs a host where the UDP game port is reachable from the iPhone. For a same-Wi-Fi test, use a computer on the same network as the iPhone and follow [the server guide](server/README.md).
+
+## Compatibility checklist
+
+Before marking iOS supported, verify region import, matchmaking, lobby creation, round start, mode commands, reconnects, round end, and disconnect cleanup on the current iOS release.
