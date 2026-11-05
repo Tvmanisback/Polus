@@ -91,7 +91,10 @@ public sealed class MainActivity : Activity, IPatchLogger
             if (split)
             {
                 copiedLib = await CopyToPrivateStorage(armSplit!, input);
-                extras = paths.Where(p => p != baseApk && p != armSplit).Select(p => CopyToPrivateStorage(p, input).GetAwaiter().GetResult()).ToArray();
+                var extraPaths = new List<string>();
+                foreach (var extra in paths.Where(p => p != baseApk && p != armSplit))
+                    extraPaths.Add(await CopyToPrivateStorage(extra, input));
+                extras = extraPaths.ToArray();
             }
 
             SetStatus("Downloading LemonLoader runtime assets…");
