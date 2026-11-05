@@ -35,7 +35,7 @@ jobs:
         id: apk
         shell: bash
         run: |
-          APK_PATH="$(find android/Polus.Android/bin/Release/net8.0-android35.0 -type f -name '*.apk' | head -n 1)"
+          APK_PATH="$(find android/Polus.Android/bin/Release/net9.0-android35.0 -type f -name '*.apk' | head -n 1)"
           test -n "$APK_PATH"
           echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
       - name: Capture Polus patcher UI
