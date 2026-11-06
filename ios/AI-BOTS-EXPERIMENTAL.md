@@ -1,22 +1,30 @@
-# Polus AI Bots — isolated experiment
+# Polus AI Bots — Among Us 19.0+ port
 
-This branch is a **separate build experiment**. It does not change the official Impostor server currently running on Altare.
+This experiment ports the bot subsystem onto the **official Impostor 1.10.9 source**, rather than building the older Impostor fork used by the bot project.
 
-## Build it
+The official 1.10.9 compatibility manager includes Among Us 19.0 PC and mobile entries. The included configuration also enables `AllowFutureGameVersions` for later 19.0.x hotfix builds. This is a version-check bypass, not a guarantee against future protocol changes.
 
-1. Open the [Experimental AI Bots Server workflow](https://github.com/Tvmanisback/Polus/actions/workflows/experimental-ai-bots.yml).
+## Build
+
+1. Open [Experimental AI Bots Server (Among Us 19.0+)](https://github.com/Tvmanisback/Polus/actions/workflows/experimental-ai-bots.yml).
 2. Choose **Run workflow** on branch `experimental/ai-bots`.
-3. Wait for the test and publish steps to finish.
-4. Download the `Polus-AI-Bots-Experimental-linux-x64` artifact.
+3. The workflow overlays the bot subsystem onto official Impostor 1.10.9, runs the upstream simulation tests, builds the patched server, and publishes a Linux artifact.
+4. Download `Polus-AI-Bots-19.0plus-linux-x64` from the completed workflow run.
 
-The build uses the upstream AI-bot implementation at the pinned GPL-3.0 revision listed in the workflow. It runs the upstream automated tests and publishes a separate Linux server package. The bots use the built-in heuristic brain by default; no OpenRouter key is required.
+## Use
 
-## Compatibility status
+In a normal lobby hosted on the experimental server, type:
 
-The upstream project documents Among Us 18.0 support. The current Polus iPad client is Among Us 19.0.1. The package enables Impostor's `AllowFutureGameVersions` setting, but that is only a compatibility bypass and **does not prove** the 19.0.1 protocol still works. Real-client testing is still required.
+```text
+!bots 5
+```
 
-## Do not deploy to the live server
+Other commands: `!bots status` and `!bots off`. The built-in heuristic brain works without an OpenRouter API key.
 
-The current Altare allocation is already used by the official Impostor process. This artifact is not a plugin and cannot be loaded as `plugins/Polus.ServerPlugin.dll`. It is a separate server executable that needs its own test host and UDP allocation. Do not overwrite the live root files, the root `plugins/` folder, the current `start.sh`, or the current Caddy setup.
+## Live server protection
 
-Only after a separate-host test succeeds should we consider porting the bot implementation to the exact Among Us 19.0.1 protocol. No live deployment is performed by this workflow.
+This is a **server executable**, not `plugins/Polus.ServerPlugin.dll`. Real simulated players require internal Impostor server integration; a normal plugin cannot provide this with the current plugin API.
+
+The workflow does not deploy anything. It does not change the existing Altare server, root `plugins/` folder, `start.sh`, Caddy configuration, or live allocation. Testing requires a separate host and UDP allocation. Do not overwrite the live official installation.
+
+The first real-client test must use the current Among Us 19.0.1 iPad client. The upstream bot author states their own real-client integration was not tested, so passing compilation and simulation tests is not enough to claim the iPad test succeeded.
