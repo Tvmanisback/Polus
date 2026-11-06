@@ -2,6 +2,8 @@ name: Experimental AI Bots Server (Among Us 19.0+)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [experimental/ai-bots]
 
 permissions:
   contents: read
