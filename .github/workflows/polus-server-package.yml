@@ -36,12 +36,12 @@ jobs:
           tar -xzf /tmp/impostor.tar.gz -C package/runtime
           chmod +x package/runtime/Impostor.Server
 
-      - name: Build Polus plugin into Impostor plugin directory
+      - name: Build Polus plugin in root plugins directory
         run: |
           set -euo pipefail
-          mkdir -p package/runtime/plugins
-          dotnet publish ios/Polus.ServerPlugin/Polus.ServerPlugin.csproj -c Release -o package/runtime/plugins
-          test -f package/runtime/plugins/Polus.ServerPlugin.dll
+          mkdir -p package/plugins
+          dotnet publish ios/Polus.ServerPlugin/Polus.ServerPlugin.csproj -c Release -o package/plugins
+          test -f package/plugins/Polus.ServerPlugin.dll
 
       - name: Create Altare startup files
         run: |
@@ -69,8 +69,8 @@ jobs:
             echo "ERROR: runtime/Impostor.Server is missing or not executable."
             exit 1
           fi
-          if [[ ! -f runtime/plugins/Polus.ServerPlugin.dll ]]; then
-            echo "ERROR: runtime/plugins/Polus.ServerPlugin.dll is missing."
+          if [[ ! -f plugins/Polus.ServerPlugin.dll ]]; then
+            echo "ERROR: root plugins/Polus.ServerPlugin.dll is missing."
             exit 1
           fi
           cp config.template.json runtime/config.json
@@ -85,7 +85,7 @@ jobs:
           cfg["Server"]["PublicPort"] = port
           cfg["Server"]["ListenIp"] = "0.0.0.0"
           cfg["Server"]["ListenPort"] = port
-          cfg["PluginLoader"]["Paths"] = ["plugins"]
+          cfg["PluginLoader"]["Paths"] = ["../plugins"]
           with open(path, "w", encoding="utf-8") as f:
               json.dump(cfg, f, indent=2)
           PY
@@ -96,7 +96,7 @@ jobs:
           chmod +x package/start.sh
           cat > package/README-ALTARE.txt <<'TXT'
           POLUS iOS SERVER - ALTARE
-          The archive contains the full Impostor server in runtime/ and the Polus plugin in runtime/plugins/.
+          The archive contains the full Impostor server in runtime/ and the Polus plugin in the root plugins/ directory.
           1. Extract polus-server.tar.gz into /home/container.
           2. Set Startup command to:
              tar -xzf /home/container/polus-server.tar.gz -C /home/container && bash /home/container/start.sh
@@ -109,7 +109,7 @@ jobs:
         run: |
           set -euo pipefail
           test -x package/runtime/Impostor.Server
-          test -f package/runtime/plugins/Polus.ServerPlugin.dll
+          test -f package/plugins/Polus.ServerPlugin.dll
           test -f package/config.template.json
           test -x package/start.sh
           find package -maxdepth 3 -type f -print | sort
