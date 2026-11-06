@@ -29,7 +29,7 @@ for bundle in sorted((root / "ios" / "ai-bots").glob("vendor-*.json")):
         file_count += 1
 
 bot_server = vendor_root / "impostor" / "src" / "Impostor.Server"
-if file_count < 60 or not (bot_server / "LlmBots" / "BotManager.cs").is_file():
+if file_count < 62 or not (bot_server / "LlmBots" / "BotManager.cs").is_file():
     raise SystemExit(f"Vendored bot source is incomplete ({file_count} files found).")
 
 shutil.copytree(bot_server / "LlmBots", server / "LlmBots", dirs_exist_ok=True)
@@ -91,7 +91,7 @@ replace_once(
     "  <ItemGroup>\n    <ProjectReference Include=\"..\\Impostor.Api\\Impostor.Api.csproj\" />",
 )
 
-# The bot movement partial exposes the ship's internal systems dictionary.
+# Bot partials expose private internals without replacing the official implementation.
 ship = server / "Net" / "Inner" / "Objects" / "ShipStatus" / "InnerShipStatus.cs"
 replace_once(ship, "    internal abstract class InnerShipStatus : InnerNetObject, IInnerShipStatus",
              "    internal abstract partial class InnerShipStatus : InnerNetObject, IInnerShipStatus")
