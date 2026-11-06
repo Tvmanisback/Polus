@@ -8,11 +8,11 @@ permissions:
 
 jobs:
   build:
-    name: Port bots onto official Impostor 1.10.9
+    name: Build official Impostor 1.10.9 with AI bots
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - name: Checkout Polus experiment
+      - name: Checkout Polus (includes pinned GPL bot source)
         uses: actions/checkout@v4
 
       - name: Checkout official Impostor 1.10.9
@@ -22,23 +22,13 @@ jobs:
           ref: v1.10.9
           path: impostor-base
 
-      - name: Checkout AI bot implementation
-        uses: actions/checkout@v4
-        with:
-          repository: realmrhigh/among-us-llm
-          ref: a7b54c8e04d1fcafe56dd302db1557c13f60d506
-          path: bot-source
-
       - name: Set up .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
-      - name: Port bot subsystem onto official server source
-        run: python3 ios/tools/port-ai-bots.py impostor-base bot-source
-
-      - name: Run upstream bot simulation tests
-        run: dotnet test bot-source/impostor/src/Impostor.LlmBots.Tests/Impostor.LlmBots.Tests.csproj -c Release --logger "console;verbosity=normal"
+      - name: Port vendored bot subsystem onto official server
+        run: python3 ios/tools/port-ai-bots.py impostor-base
 
       - name: Build patched official Impostor server
         run: dotnet build impostor-base/src/Impostor.Server/Impostor.Server.csproj -c Release --nologo
@@ -46,11 +36,11 @@ jobs:
       - name: Publish patched Linux server
         run: dotnet publish impostor-base/src/Impostor.Server/Impostor.Server.csproj -c Release -r linux-x64 --self-contained false -o package/server --nologo
 
-      - name: Add 19.0+ config and provenance
+      - name: Add 19.0+ config and source license
         shell: bash
         run: |
-          cp bot-source/impostor/src/Impostor.Server/config.json package/server/config.json
-          cp bot-source/LICENSE package/LICENSE
+          cp ios/ai-bots/config.json package/server/config.json
+          cp ios/ai-bots/LICENSE package/LICENSE
           cat > package/SOURCE-REVISION.txt <<'EOF'
           Official server base: https://github.com/Impostor/Impostor
           Official server tag: v1.10.9
@@ -59,15 +49,16 @@ jobs:
           AI bot source license: GPL-3.0
           The official 1.10.9 CompatibilityManager is retained, including its 19.0 PC/mobile entries.
           AllowFutureGameVersions is enabled in the included config for later 19.0.x hotfix builds.
-          This is a separate experimental server package and is not deployed to Polus or Altare.
+          Vendored source is under ios/ai-bots/vendor-*.json in the Polus repository.
+          This package is experimental and is not deployed to Polus or Altare.
           EOF
           cat > package/EXPERIMENTAL-README.txt <<'EOF'
           POLUS AI BOTS - AMONG US 19.0+ EXPERIMENTAL BUILD
 
-          This is the official Impostor 1.10.9 server source with the AI bot subsystem ported in.
-          It is a separate executable package, not a plugin DLL.
+          This is official Impostor 1.10.9 with the AI bot subsystem ported into its server internals.
+          It is a separate server executable, not a plugin DLL.
 
-          The official 1.10.9 compatibility manager includes Among Us 19.0 PC and mobile versions.
+          The official 1.10.9 compatibility manager includes Among Us 19.0 PC and mobile entries.
           AllowFutureGameVersions is also enabled for later 19.0.x hotfix builds, but a bypass does
           not guarantee compatibility if Innersloth changes the network protocol.
 
@@ -75,10 +66,12 @@ jobs:
           Host a normal lobby and type: !bots 5
           Other commands: !bots status and !bots off
 
-          This artifact has not been deployed to the live Polus server. It requires its own test
-          host and UDP allocation. Do not copy it over a running server or reuse the live allocation.
+          This artifact has not been tested with a real Among Us client yet. The first client test
+          must use the current Among Us 19.0.1 iPad client.
 
-          This build is experimental. First verify it with the actual 19.0.1 iPad client.
+          This is a separate server build. It has not been deployed to the live Polus server.
+          Do not copy it over a running server or reuse the live allocation.
+          A separate test host and UDP allocation are required for isolated testing.
           EOF
 
       - name: Package artifact
