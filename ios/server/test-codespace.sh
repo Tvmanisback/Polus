@@ -42,9 +42,17 @@ if ! grep -q "Polus iOS server plugin enabled" "${LOG}"; then
   exit 1
 fi
 
-if ! curl --silent --show-error --max-time 5 -o /dev/null http://127.0.0.1:22023/; then
+HTTP_READY=false
+for attempt in $(seq 1 15); do
+  if curl --silent --fail --max-time 2 -o /dev/null http://127.0.0.1:22023/; then
+    HTTP_READY=true
+    break
+  fi
+  sleep 1
+done
+if [[ "${HTTP_READY}" != true ]]; then
   cat "${LOG}"
-  echo "The HTTP matchmaking listener did not respond."
+  echo "The HTTP matchmaking listener did not respond after 15 retries."
   exit 1
 fi
 
