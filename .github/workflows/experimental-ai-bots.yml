@@ -1,4 +1,4 @@
-name: Experimental AI Bots Server
+name: Experimental AI Bots Server (Among Us 19.0+)
 
 on:
   workflow_dispatch:
@@ -8,14 +8,21 @@ permissions:
 
 jobs:
   build:
-    name: Build isolated Linux bot server
+    name: Port bots onto official Impostor 1.10.9
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - name: Checkout Polus experiment
         uses: actions/checkout@v4
 
-      - name: Checkout bot-server source at pinned revision
+      - name: Checkout official Impostor 1.10.9
+        uses: actions/checkout@v4
+        with:
+          repository: Impostor/Impostor
+          ref: v1.10.9
+          path: impostor-base
+
+      - name: Checkout AI bot implementation
         uses: actions/checkout@v4
         with:
           repository: realmrhigh/among-us-llm
@@ -27,54 +34,62 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Run bot-server tests
+      - name: Port bot subsystem onto official server source
+        run: python3 ios/tools/port-ai-bots.py impostor-base bot-source
+
+      - name: Run upstream bot simulation tests
         run: dotnet test bot-source/impostor/src/Impostor.LlmBots.Tests/Impostor.LlmBots.Tests.csproj -c Release --logger "console;verbosity=normal"
 
-      - name: Publish isolated Linux server
-        run: dotnet publish bot-source/impostor/src/Impostor.Server/Impostor.Server.csproj -c Release -r linux-x64 --self-contained false -o package/server --nologo
+      - name: Build patched official Impostor server
+        run: dotnet build impostor-base/src/Impostor.Server/Impostor.Server.csproj -c Release --nologo
 
-      - name: Add runtime config, provenance, and safety notes
+      - name: Publish patched Linux server
+        run: dotnet publish impostor-base/src/Impostor.Server/Impostor.Server.csproj -c Release -r linux-x64 --self-contained false -o package/server --nologo
+
+      - name: Add 19.0+ config and provenance
         shell: bash
         run: |
           cp bot-source/impostor/src/Impostor.Server/config.json package/server/config.json
           cp bot-source/LICENSE package/LICENSE
           cat > package/SOURCE-REVISION.txt <<'EOF'
-          Source: https://github.com/realmrhigh/among-us-llm
-          Commit: a7b54c8e04d1fcafe56dd302db1557c13f60d506
-          License: GPL-3.0
-          This is an experimental, separate server build. It is not deployed to Polus or Altare.
-          The upstream project documents Among Us 18.0 support. Among Us 19.0.1 compatibility is NOT verified.
+          Official server base: https://github.com/Impostor/Impostor
+          Official server tag: v1.10.9
+          AI bot source: https://github.com/realmrhigh/among-us-llm
+          AI bot source commit: a7b54c8e04d1fcafe56dd302db1557c13f60d506
+          AI bot source license: GPL-3.0
+          The official 1.10.9 CompatibilityManager is retained, including its 19.0 PC/mobile entries.
+          AllowFutureGameVersions is enabled in the included config for later 19.0.x hotfix builds.
+          This is a separate experimental server package and is not deployed to Polus or Altare.
           EOF
           cat > package/EXPERIMENTAL-README.txt <<'EOF'
-          POLUS AI BOTS - EXPERIMENTAL BUILD
+          POLUS AI BOTS - AMONG US 19.0+ EXPERIMENTAL BUILD
 
-          This package is a separate Impostor-based server containing AI player support.
-          It does not modify the existing Polus server or its files.
+          This is the official Impostor 1.10.9 server source with the AI bot subsystem ported in.
+          It is a separate executable package, not a plugin DLL.
 
-          IMPORTANT:
-          - Do not copy this package over the live official Impostor installation.
-          - Do not run it on the live server's allocated UDP port while the official server is running.
-          - It requires a separate test host / allocation to be tested safely.
-          - Upstream documents Among Us 18.0; Among Us 19.0.1 is not verified by this build.
-          - The built-in heuristic bot brain works without an LLM API key.
+          The official 1.10.9 compatibility manager includes Among Us 19.0 PC and mobile versions.
+          AllowFutureGameVersions is also enabled for later 19.0.x hotfix builds, but a bypass does
+          not guarantee compatibility if Innersloth changes the network protocol.
 
-          Start command on a compatible Linux test host:
-            ./Impostor.Server
+          The built-in heuristic bot brain requires no API key.
+          Host a normal lobby and type: !bots 5
+          Other commands: !bots status and !bots off
 
-          The included config.json enables AllowFutureGameVersions, but that setting does not guarantee
-          protocol compatibility with newer Among Us clients.
-          See SOURCE-REVISION.txt for the exact GPL-3.0 source revision.
+          This artifact has not been deployed to the live Polus server. It requires its own test
+          host and UDP allocation. Do not copy it over a running server or reuse the live allocation.
+
+          This build is experimental. First verify it with the actual 19.0.1 iPad client.
           EOF
 
       - name: Package artifact
         run: |
           cd package
-          zip -qr ../Polus-AI-Bots-Experimental-linux-x64.zip .
+          zip -qr ../Polus-AI-Bots-19.0plus-linux-x64.zip .
 
       - name: Upload experimental artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Polus-AI-Bots-Experimental-linux-x64
-          path: Polus-AI-Bots-Experimental-linux-x64.zip
+          name: Polus-AI-Bots-19.0plus-linux-x64
+          path: Polus-AI-Bots-19.0plus-linux-x64.zip
           if-no-files-found: error
           retention-days: 14
