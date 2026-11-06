@@ -24,7 +24,7 @@
     "PacketSizeLimit": 1203
   },
   "Compatibility": {
-    "AllowFutureGameVersions": false,
+    "AllowFutureGameVersions": true,
     "AllowHostAuthority": false,
     "AllowVersionMixing": false
   }
