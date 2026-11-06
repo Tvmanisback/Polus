@@ -33,9 +33,10 @@ jobs:
       - name: Publish isolated Linux server
         run: dotnet publish bot-source/impostor/src/Impostor.Server/Impostor.Server.csproj -c Release -r linux-x64 --self-contained false -o package/server --nologo
 
-      - name: Add provenance and safety notes
+      - name: Add runtime config, provenance, and safety notes
         shell: bash
         run: |
+          cp bot-source/impostor/src/Impostor.Server/config.json package/server/config.json
           cp bot-source/LICENSE package/LICENSE
           cat > package/SOURCE-REVISION.txt <<'EOF'
           Source: https://github.com/realmrhigh/among-us-llm
