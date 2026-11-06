@@ -1,0 +1,79 @@
+name: Experimental AI Bots Server
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build isolated Linux bot server
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout Polus experiment
+        uses: actions/checkout@v4
+
+      - name: Checkout bot-server source at pinned revision
+        uses: actions/checkout@v4
+        with:
+          repository: realmhigh/among-us-llm
+          ref: a7b54c8e04d1fcafe56dd302db1557c13f60d506
+          path: bot-source
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Run bot-server tests
+        run: dotnet test bot-source/impostor/src/Impostor.LlmBots.Tests/Impostor.LlmBots.Tests.csproj -c Release --logger "console;verbosity=normal"
+
+      - name: Publish isolated Linux server
+        run: dotnet publish bot-source/impostor/src/Impostor.Server/Impostor.Server.csproj -c Release -r linux-x64 --self-contained false -o package/server --nologo
+
+      - name: Add provenance and safety notes
+        shell: bash
+        run: |
+          cp bot-source/LICENSE package/LICENSE
+          cat > package/SOURCE-REVISION.txt <<'EOF'
+          Source: https://github.com/realmrhigh/among-us-llm
+          Commit: a7b54c8e04d1fcafe56dd302db1557c13f60d506
+          License: GPL-3.0
+          This is an experimental, separate server build. It is not deployed to Polus or Altare.
+          The upstream project documents Among Us 18.0 support. Among Us 19.0.1 compatibility is NOT verified.
+          EOF
+          cat > package/EXPERIMENTAL-README.txt <<'EOF'
+          POLUS AI BOTS - EXPERIMENTAL BUILD
+
+          This package is a separate Impostor-based server containing AI player support.
+          It does not modify the existing Polus server or its files.
+
+          IMPORTANT:
+          - Do not copy this package over the live official Impostor installation.
+          - Do not run it on the live server's allocated UDP port while the official server is running.
+          - It requires a separate test host / allocation to be tested safely.
+          - Upstream documents Among Us 18.0; Among Us 19.0.1 is not verified by this build.
+          - The built-in heuristic bot brain works without an LLM API key.
+
+          Start command on a compatible Linux test host:
+            ./Impostor.Server
+
+          The included config.json enables AllowFutureGameVersions, but that setting does not guarantee
+          protocol compatibility with newer Among Us clients.
+          See SOURCE-REVISION.txt for the exact GPL-3.0 source revision.
+          EOF
+
+      - name: Package artifact
+        run: |
+          cd package
+          zip -qr ../Polus-AI-Bots-Experimental-linux-x64.zip .
+
+      - name: Upload experimental artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Polus-AI-Bots-Experimental-linux-x64
+          path: Polus-AI-Bots-Experimental-linux-x64.zip
+          if-no-files-found: error
+          retention-days: 14
