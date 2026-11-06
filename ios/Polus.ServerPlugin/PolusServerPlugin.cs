@@ -361,6 +361,15 @@ internal sealed class ModeCommandListener : IEventListener
             session.CopId = null;
             session.InfectedIds.Clear();
             session.ArrestedIds.Clear();
+
+            // Prepare a fresh Random Chaos roll while the lobby is available,
+            // so the next round receives synchronized settings before it starts.
+            if (session.Mode == PolusMode.RandomChaos)
+            {
+                ApplyLobbyPreset(e.Game, PolusMode.RandomChaos, session);
+                await e.Game.SyncSettingsAsync();
+                await Broadcast(e.Game, "🎲 Random Chaos has rolled new settings for the next round.");
+            }
         }
     }
 
