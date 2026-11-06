@@ -1,10 +1,9 @@
-name: Build Polus iOS server package
+name: Build Polus plugin DLLs
 
 on:
   push:
     paths:
       - "ios/Polus.ServerPlugin/**"
-      - "ios/server/**"
       - ".github/workflows/polus-server-package.yml"
   workflow_dispatch:
 
@@ -12,131 +11,32 @@ permissions:
   contents: read
 
 jobs:
-  package:
+  build-plugin:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v4
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
-      - name: Download official Impostor server into root
+      - name: Build Polus plugin
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="1.10.9"
-          ASSET="Impostor-Server_${VERSION}_linux-x64.tar.gz"
-          URL="https://github.com/Impostor/Impostor/releases/download/v${VERSION}/${ASSET}"
-          curl --fail --location --retry 3 "${URL}" -o /tmp/impostor.tar.gz
-          echo "54ff18b773fe2cb6458a67d5ae5291b35d5f9f60054ca30e6fc49f07cc784ad8  /tmp/impostor.tar.gz" | sha256sum --check
-          mkdir -p package
-          tar -xzf /tmp/impostor.tar.gz -C package
-          test -f package/Impostor.Server
-          chmod +x package/Impostor.Server
+          dotnet publish ios/Polus.ServerPlugin/Polus.ServerPlugin.csproj \
+            --configuration Release \
+            --output plugin-dlls
+          test -s plugin-dlls/Polus.ServerPlugin.dll
+          echo "Built plugin files:"
+          find plugin-dlls -maxdepth 1 -type f -printf '%f\n' | sort
 
-      - name: Build Polus plugin into root plugins folder
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p package/plugins
-          dotnet publish ios/Polus.ServerPlugin/Polus.ServerPlugin.csproj -c Release -o package/plugins
-          test -f package/plugins/Polus.ServerPlugin.dll
-
-      - name: Create root config and startup script
-        shell: bash
-        run: |
-          set -euo pipefail
-          cp ios/server/config.template.json package/config.template.json
-          cat > package/start.sh <<'SCRIPT'
-          #!/usr/bin/env bash
-          set -Eeuo pipefail
-          exec 2>&1
-          cd /home/container
-          echo "========== POLUS STARTUP =========="
-          PORT="${SERVER_PORT:-${SERVER_PORT_1:-25906}}"
-          PUBLIC_IP="${SERVER_IP:-${SERVER_ADDRESS:-}}"
-          DOTNET_ROOT="/home/container/dotnet"
-          export DOTNET_ROOT PATH="$DOTNET_ROOT:$PATH"
-
-          for file in Impostor.Server plugins/Polus.ServerPlugin.dll caddy ionos-token.txt; do
-            [[ -f "$file" ]] || { echo "ERROR: Missing $file"; exit 1; }
-          done
-          if [[ -z "$PUBLIC_IP" ]]; then
-            PUBLIC_IP="$(getent ahostsv4 us-iad01.altare.global | awk 'NR==1 {print $1}')"
-          fi
-          [[ -n "$PUBLIC_IP" ]] || { echo "ERROR: Set SERVER_IP to the public IPv4."; exit 1; }
-          [[ "$PORT" =~ ^[0-9]+$ ]] && (( PORT >= 1 && PORT <= 65535 )) || { echo "ERROR: Invalid port $PORT"; exit 1; }
-
-          chmod +x Impostor.Server caddy
-          export IONOS_API_TOKEN="$(tr -d '\r\n' < ionos-token.txt)"
-          [[ -n "$IONOS_API_TOKEN" ]] || { echo "ERROR: ionos-token.txt is empty"; exit 1; }
-          chmod 600 ionos-token.txt
-
-          if ! compgen -G "$DOTNET_ROOT/shared/Microsoft.AspNetCore.App/8.*" >/dev/null; then
-            mkdir -p "$DOTNET_ROOT"
-            curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
-            bash /tmp/dotnet-install.sh --runtime aspnetcore --channel 8.0 --install-dir "$DOTNET_ROOT"
-          fi
-
-          cp config.template.json config.json
-          python3 - "$PORT" "$PUBLIC_IP" <<'PY'
-          import json, sys
-          port, ip = int(sys.argv[1]), sys.argv[2]
-          with open("config.json", encoding="utf-8") as f: cfg = json.load(f)
-          cfg["Server"].update(PublicIp=ip, PublicPort=port, ListenIp="0.0.0.0", ListenPort=port)
-          cfg["HttpServer"].update(Enabled=True, ListenIp="127.0.0.1", ListenPort=8080)
-          cfg["PluginLoader"]["Paths"] = ["plugins"]
-          cfg["Compatibility"]["AllowFutureGameVersions"] = True
-          with open("config.json", "w", encoding="utf-8") as f: json.dump(cfg, f, indent=2)
-          PY
-
-          curl -fsSL "https://raw.githubusercontent.com/Tvmanisback/Polus/refs/heads/main/ios/server/Caddyfile" -o Caddyfile
-          sed -i "s/polus.yapyur.org:25906/polus.yapyur.org:$PORT/" Caddyfile
-          ./caddy validate --config ./Caddyfile --adapter caddyfile
-
-          echo "Starting Impostor with root plugins/Polus.ServerPlugin.dll"
-          ./Impostor.Server &
-          IMPOSTOR_PID=$!
-          CADDY_PID=""
-          cleanup() {
-            [[ -z "$CADDY_PID" ]] || kill "$CADDY_PID" 2>/dev/null || true
-            kill "$IMPOSTOR_PID" 2>/dev/null || true
-          }
-          trap cleanup EXIT INT TERM
-          sleep 4
-          kill -0 "$IMPOSTOR_PID" 2>/dev/null || { echo "ERROR: Impostor exited during startup"; wait "$IMPOSTOR_PID" || true; exit 1; }
-          ./caddy run --config ./Caddyfile --adapter caddyfile &
-          CADDY_PID=$!
-          wait "$IMPOSTOR_PID"
-          SCRIPT
-          chmod +x package/start.sh
-          cat > package/README-ALTARE.txt <<'TXT'
-          POLUS ALTARE PACKAGE
-          All official Impostor server files are in the root. The Polus plugin is in root plugins/.
-          Extract/merge this artifact into /home/container. Keep your custom Caddy binary at /home/container/caddy and your IONOS token at /home/container/ionos-token.txt.
-          Set startup command to: bash /home/container/start.sh
-          Allocation must support UDP gameplay and TCP matchmaking on the same port.
-          Set SERVER_PORT and SERVER_IP startup variables if automatic values are incorrect.
-          TXT
-
-      - name: Verify root-level package
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -x package/Impostor.Server
-          test -f package/plugins/Polus.ServerPlugin.dll
-          test -f package/config.template.json
-          test -x package/start.sh
-          test ! -d package/runtime
-          find package -maxdepth 3 -type f -print | sort
-
-      - name: Create archive
-        run: tar -czf polus-server.tar.gz -C package .
-
-      - uses: actions/upload-artifact@v4
+      - name: Upload plugin DLLs only
+        uses: actions/upload-artifact@v4
         with:
-          name: polus-server
-          path: polus-server.tar.gz
+          name: Polus-Plugin-DLLs
+          path: plugin-dlls/
           if-no-files-found: error
           retention-days: 14
