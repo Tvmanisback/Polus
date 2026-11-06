@@ -23,9 +23,6 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Build Polus plugin
-        run: dotnet publish ios/Polus.ServerPlugin/Polus.ServerPlugin.csproj -c Release -o package/plugins
-
       - name: Download pinned Impostor Linux server
         shell: bash
         run: |
@@ -39,8 +36,16 @@ jobs:
           tar -xzf /tmp/impostor.tar.gz -C package/runtime
           chmod +x package/runtime/Impostor.Server
 
+      - name: Build Polus plugin into Impostor plugin directory
+        run: |
+          set -euo pipefail
+          mkdir -p package/runtime/plugins
+          dotnet publish ios/Polus.ServerPlugin/Polus.ServerPlugin.csproj -c Release -o package/runtime/plugins
+          test -f package/runtime/plugins/Polus.ServerPlugin.dll
+
       - name: Create Altare startup files
         run: |
+          set -euo pipefail
           mkdir -p package
           cp ios/server/config.template.json package/config.template.json
           cat > package/start.sh <<'SCRIPT'
@@ -60,21 +65,39 @@ jobs:
             echo "Invalid server port: ${PORT}"
             exit 1
           fi
+          if [[ ! -x runtime/Impostor.Server ]]; then
+            echo "ERROR: runtime/Impostor.Server is missing or not executable."
+            exit 1
+          fi
+          if [[ ! -f runtime/plugins/Polus.ServerPlugin.dll ]]; then
+            echo "ERROR: runtime/plugins/Polus.ServerPlugin.dll is missing."
+            exit 1
+          fi
           cp config.template.json runtime/config.json
-          # Use a delimiter that cannot conflict with an IPv4 address.
-          # Replace only the template values; this avoids fragile quote escaping.
-          sed -i \
-            -e "s|127\.0\.0\.1|${HOST}|g" \
-            -e "s|22023|${PORT}|g" \
-            runtime/config.json
-          echo "Starting Polus Impostor on port ${PORT}; public IP ${HOST}"
+          python3 - "${PORT}" "${HOST}" <<'PY'
+          import json, sys
+          port = int(sys.argv[1])
+          host = sys.argv[2]
+          path = "runtime/config.json"
+          with open(path, encoding="utf-8") as f:
+              cfg = json.load(f)
+          cfg["Server"]["PublicIp"] = host
+          cfg["Server"]["PublicPort"] = port
+          cfg["Server"]["ListenIp"] = "0.0.0.0"
+          cfg["Server"]["ListenPort"] = port
+          cfg["PluginLoader"]["Paths"] = ["plugins"]
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(cfg, f, indent=2)
+          PY
+          echo "Starting Polus Impostor on ${HOST}:${PORT}"
           cd runtime
           exec ./Impostor.Server
           SCRIPT
           chmod +x package/start.sh
           cat > package/README-ALTARE.txt <<'TXT'
           POLUS iOS SERVER - ALTARE
-          1. Extract polus-server.tar.gz into /home/container using the Startup command.
+          The archive contains the full Impostor server in runtime/ and the Polus plugin in runtime/plugins/.
+          1. Extract polus-server.tar.gz into /home/container.
           2. Set Startup command to:
              tar -xzf /home/container/polus-server.tar.gz -C /home/container && bash /home/container/start.sh
           3. The allocation must allow BOTH TCP matchmaking and UDP gameplay on the same port.
@@ -82,10 +105,19 @@ jobs:
           5. Set SERVER_IP to the allocation's numeric public IPv4 if automatic resolution does not work.
           TXT
 
+      - name: Verify package contents
+        run: |
+          set -euo pipefail
+          test -x package/runtime/Impostor.Server
+          test -f package/runtime/plugins/Polus.ServerPlugin.dll
+          test -f package/config.template.json
+          test -x package/start.sh
+          find package -maxdepth 3 -type f -print | sort
+
       - name: Package server archive
         run: |
           tar -czf polus-server.tar.gz -C package .
-          tar -tzf polus-server.tar.gz | head -80
+          tar -tzf polus-server.tar.gz | head -100
 
       - name: Upload server artifact
         uses: actions/upload-artifact@v4
