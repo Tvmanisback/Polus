@@ -4,7 +4,7 @@ This branch is a **separate build experiment**. It does not change the official 
 
 ## Build it
 
-1. Open the [Experimental AI Bots Server workflow](../../actions/workflows/experimental-ai-bots.yml).
+1. Open the [Experimental AI Bots Server workflow](https://github.com/Tvmanisback/Polus/actions/workflows/experimental-ai-bots.yml).
 2. Choose **Run workflow** on branch `experimental/ai-bots`.
 3. Wait for the test and publish steps to finish.
 4. Download the `Polus-AI-Bots-Experimental-linux-x64` artifact.
