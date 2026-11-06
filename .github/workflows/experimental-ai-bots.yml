@@ -18,7 +18,7 @@ jobs:
       - name: Checkout bot-server source at pinned revision
         uses: actions/checkout@v4
         with:
-          repository:realmrhigh/among-us-llm
+          repository: realmrhigh/among-us-llm
           ref: a7b54c8e04d1fcafe56dd302db1557c13f60d506
           path: bot-source
 
